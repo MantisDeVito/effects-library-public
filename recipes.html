@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Recipes · Callum's Effects Library</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --card: #141414;
+    --card-hover: #1a1a1a;
+    --border: #262626;
+    --border-hover: #3a3a3a;
+    --text: #ececec;
+    --muted: #888;
+    --accent: #ff7a1a;
+    --accent-soft: rgba(255, 122, 26, 0.12);
+    --accent-soft-hover: rgba(255, 122, 26, 0.22);
+    --display: 'Impact', 'Haettenschweiler', 'Arial Narrow Bold', sans-serif;
+    --mono: 'SF Mono', Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: 32px 40px 80px;
+    max-width: 1480px;
+    margin: 0 auto;
+  }
+
+  .topnav {
+    display: flex; align-items: flex-end; gap: 24px;
+    padding-bottom: 20px; border-bottom: 1px solid var(--border);
+    margin-bottom: 28px; flex-wrap: wrap;
+  }
+  .topnav .brand {
+    font-family: var(--display); font-size: 18px;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text); text-decoration: none; white-space: nowrap;
+    display: inline-block; line-height: 1.1;
+  }
+  .topnav .brand .brand-top {
+    display: block; font-size: 12px; letter-spacing: 1.5px;
+    color: var(--accent); margin-bottom: 2px;
+  }
+  .topnav .brand:hover { color: var(--accent); }
+  .topnav nav {
+    display: flex; gap: 20px; font-size: 13px;
+    letter-spacing: 0.3px; text-transform: uppercase; flex-wrap: wrap;
+  }
+  .topnav nav a { color: var(--muted); text-decoration: none; transition: color 120ms; }
+  .topnav nav a:hover { color: var(--text); }
+  .topnav nav a.current { color: var(--accent); }
+
+  header.page-header { padding-bottom: 24px; margin-bottom: 32px; }
+  header.page-header h1 {
+    font-family: var(--display); font-size: 44px;
+    margin: 0 0 8px; letter-spacing: -0.5px; text-transform: uppercase;
+  }
+  header.page-header p { margin: 0; color: var(--muted); max-width: 720px; }
+  header.page-header p + p { margin-top: 12px; }
+  header.page-header code {
+    font-family: var(--mono); font-size: 12px;
+    background: rgba(255, 255, 255, 0.05); padding: 1px 5px; border-radius: 2px;
+  }
+
+  .source-note {
+    background: rgba(255, 122, 26, 0.06);
+    border: 1px solid rgba(255, 122, 26, 0.25);
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin-bottom: 28px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    max-width: 980px;
+  }
+  .source-note strong { color: var(--accent); }
+  .source-note code {
+    background: rgba(255, 255, 255, 0.05); padding: 1px 5px;
+    border-radius: 2px; font-family: var(--mono); font-size: 11px;
+  }
+
+  .filter-bar {
+    display: flex; flex-direction: column; gap: 12px;
+    padding: 16px 18px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 28px;
+  }
+  .filter-bar .row {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  }
+  .filter-bar input[type="search"] {
+    flex: 1 1 280px; max-width: 420px;
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 3px;
+    padding: 8px 12px; font-size: 13px; font-family: var(--mono);
+    outline: none; transition: border-color 120ms;
+  }
+  .filter-bar input[type="search"]:focus { border-color: var(--accent); }
+  .filter-bar .label {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-right: 4px;
+  }
+  .chip {
+    display: inline-block; padding: 5px 10px;
+    font-family: var(--mono); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: color 120ms, border-color 120ms, background 120ms;
+  }
+  .chip:hover { color: var(--text); border-color: var(--border-hover); }
+  .chip.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+  .filter-bar .stat {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    margin-left: auto;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 18px;
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    transition: border-color 120ms, background 120ms;
+    position: relative;
+  }
+  .card:hover { border-color: var(--border-hover); background: var(--card-hover); }
+  .card.hidden { display: none; }
+
+  .stage {
+    aspect-ratio: 16 / 9; background: #050505;
+    position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    user-select: none; -webkit-user-select: none;
+  }
+  .stage video, .stage .placeholder {
+    width: 100%; height: 100%; object-fit: cover;
+    display: block; background: #050505;
+  }
+  .stage .placeholder {
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    color: var(--muted);
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 1.5px; text-transform: uppercase;
+  }
+  .stage .placeholder .eq-bars {
+    display: flex; align-items: flex-end; gap: 3px; height: 40px; margin-bottom: 8px;
+    opacity: 0.4;
+  }
+  .stage .placeholder .eq-bars .bar {
+    width: 4px; background: var(--accent); border-radius: 2px;
+    height: 20%; transition: height 120ms ease;
+  }
+  .card.playing .placeholder .eq-bars { opacity: 1; }
+  .card.playing .placeholder .eq-bars .bar:nth-child(1) { animation: bar 0.7s 0.0s infinite; }
+  .card.playing .placeholder .eq-bars .bar:nth-child(2) { animation: bar 0.5s 0.1s infinite; }
+  .card.playing .placeholder .eq-bars .bar:nth-child(3) { animation: bar 0.9s 0.2s infinite; }
+  .card.playing .placeholder .eq-bars .bar:nth-child(4) { animation: bar 0.6s 0.0s infinite; }
+  .card.playing .placeholder .eq-bars .bar:nth-child(5) { animation: bar 0.8s 0.15s infinite; }
+  @keyframes bar {
+    0%, 100% { height: 25%; }
+    50% { height: 95%; }
+  }
+
+  .kind-chip {
+    position: absolute; top: 10px; left: 10px;
+    font-family: var(--mono);
+    font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 3px 7px; border-radius: 2px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    z-index: 5;
+  }
+  .duration-chip {
+    position: absolute; top: 10px; right: 10px;
+    font-family: var(--mono);
+    font-size: 10px; letter-spacing: 0.5px;
+    padding: 3px 7px; border-radius: 2px;
+    background: rgba(0, 0, 0, 0.55);
+    color: var(--text);
+    z-index: 5;
+  }
+
+  .card-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .card-body h3 {
+    margin: 0; font-size: 13px; font-weight: 600;
+    letter-spacing: 0.3px; text-transform: uppercase;
+    font-family: var(--mono); color: var(--text);
+  }
+  .card-body .meta {
+    margin: 0; color: var(--muted); font-size: 11px;
+    font-family: var(--mono); line-height: 1.4;
+  }
+  .card-body .tags {
+    display: flex; flex-wrap: wrap; gap: 4px;
+  }
+  .card-body .tag {
+    font-family: var(--mono);
+    font-size: 9px; letter-spacing: 0.5px;
+    padding: 2px 6px; border-radius: 2px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--muted);
+  }
+  .card-body .notes {
+    margin: 0; color: var(--muted); font-size: 11px;
+    line-height: 1.45;
+    font-style: italic;
+  }
+  .card-body .backfill-suggestion {
+    margin: 0; padding: 6px 8px;
+    background: rgba(255, 0, 0, 0.08);
+    border-left: 2px solid #ff8a8a;
+    color: #ff8a8a; font-size: 10px;
+    font-family: var(--mono);
+    line-height: 1.4;
+    border-radius: 0 3px 3px 0;
+  }
+
+  /* Variants */
+  .variant-chip {
+    position: absolute; bottom: 8px; right: 8px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.5px;
+    padding: 3px 8px; border-radius: 10px;
+    background: rgba(255, 122, 26, 0.18); color: var(--accent);
+    border: 1px solid var(--accent);
+    z-index: 5;
+    cursor: default;
+  }
+  .source-tag {
+    position: absolute; bottom: 8px; left: 8px;
+    font-family: var(--mono); font-size: 9px; letter-spacing: 1px;
+    padding: 2px 6px; border-radius: 2px;
+    background: rgba(80, 200, 255, 0.1);
+    color: #69b9ff;
+    border: 1px solid rgba(80, 200, 255, 0.35);
+    text-transform: uppercase;
+    z-index: 5;
+  }
+  .variants-toggle {
+    width: 100%;
+    border: 1px dashed var(--border); background: transparent;
+    color: var(--muted);
+    padding: 6px 8px;
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    cursor: pointer; border-radius: 3px;
+    transition: color 120ms, border-color 120ms;
+  }
+  .variants-toggle:hover { color: var(--text); border-color: var(--border-hover); }
+  .variants-panel {
+    max-height: 240px; overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 4px;
+    background: rgba(0, 0, 0, 0.3);
+  }
+  .variants-panel.hidden { display: none; }
+  .variant-row {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 6px;
+    font-family: var(--mono); font-size: 11px;
+    border-radius: 2px;
+  }
+  .variant-row:hover { background: rgba(255, 255, 255, 0.04); }
+  .variant-row .v-idx { color: var(--muted); width: 28px; }
+  .variant-row .v-dur { color: var(--text); width: 48px; }
+  .variant-row .v-fill { flex: 1; }
+  .variant-row .btn-mini {
+    border: 1px solid var(--border); background: transparent;
+    color: var(--muted);
+    padding: 3px 8px;
+    font-family: var(--mono); font-size: 10px;
+    cursor: pointer; border-radius: 2px;
+  }
+  .variant-row .btn-mini:hover { color: var(--text); border-color: var(--border-hover); }
+  .variant-row .btn-mini.drop:hover {
+    color: var(--accent); border-color: var(--accent);
+  }
+  .card-body .actions {
+    display: flex; gap: 6px; margin-top: auto;
+  }
+  .btn {
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    padding: 7px 10px;
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    cursor: pointer; border-radius: 3px;
+    transition: border-color 120ms, color 120ms, background 120ms;
+  }
+  .btn:hover { border-color: var(--border-hover); }
+  .btn-primary {
+    border-color: var(--accent); color: var(--accent);
+    background: var(--accent-soft);
+    flex: 1;
+  }
+  .btn-primary:hover { background: var(--accent-soft-hover); }
+  .btn-icon { width: 36px; padding: 7px; flex: 0 0 auto; text-align: center; }
+  .btn.disabled, .btn[disabled] { opacity: 0.35; cursor: not-allowed; }
+
+  .backfill-flag {
+    position: absolute; bottom: 8px; left: 8px;
+    font-family: var(--mono); font-size: 9px; letter-spacing: 1px;
+    padding: 3px 6px; border-radius: 2px;
+    background: rgba(255, 0, 0, 0.15); color: #ff8a8a;
+    border: 1px solid rgba(255, 0, 0, 0.25);
+    z-index: 5;
+  }
+
+  #toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--card); color: var(--text);
+    border: 1px solid var(--border-hover); border-radius: 4px;
+    padding: 12px 18px; font-family: var(--mono); font-size: 12px;
+    z-index: 1000;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    opacity: 0; pointer-events: none;
+    transition: opacity 200ms;
+    max-width: 480px;
+  }
+  #toast.visible { opacity: 1; }
+  #toast.error { border-color: rgba(255, 80, 80, 0.6); color: #ffb0b0; }
+  #toast.success { border-color: var(--accent); color: var(--accent); }
+
+  .grid .error {
+    color: #ff8a8a; font-family: var(--mono); font-size: 13px;
+  }
+
+  footer {
+    margin-top: 80px; padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 13px; max-width: 880px;
+  }
+  footer code {
+    background: rgba(255, 255, 255, 0.05); padding: 1px 5px;
+    border-radius: 2px; font-family: var(--mono); font-size: 12px;
+  }
+</style>
+<script src="lib/lazy-media.js"></script>
+<script src="recipes/recipes-data.js"></script>
+</head>
+<body>
+
+<div class="topnav">
+  <a href="index.html" class="brand"><span class="brand-top">Callum's</span>Effects Library</a>
+  <nav>
+    <a href="search.html">Search</a>
+    <a href="recipes.html" class="current">Recipes</a>
+    <a href="common-sfx.html">Common SFX</a>
+    <a href="overlays.html">Overlays</a>
+    <a href="transitions.html">Transitions</a>
+    <a href="glitch.html">Glitch</a>
+    <a href="lens.html">Lens</a>
+    <a href="index.html">All pages</a>
+  </nav>
+</div>
+
+<header class="page-header">
+  <h1>Recipes</h1>
+  <p>Pre-paired effect combos — overlay + SFX, just SFX, or just overlay. Hover any card to preview. Click <strong>Drop</strong> to write a Premiere-importable FCP7 XML to disk and reveal it in Explorer.</p>
+  <p>10 categories &times; 3 variants. Sourced from <code>overlays/</code> and <code>shared-library/+100 High quality SFX/</code>.</p>
+</header>
+
+<div class="source-note">
+  <strong>PUBLIC PREVIEW.</strong> This is a browse-only mirror of the recipes deck. <strong>Drop into Premiere</strong> buttons are disabled here — they only work from the local install that ships an FCP7 XML to Premiere via a local helper. Asset previews that pull from the offline shared-library will not load.
+</div>
+
+<div class="filter-bar">
+  <div class="row">
+    <input type="search" id="search" placeholder="Search by name or tag..." autocomplete="off" />
+    <span class="stat" id="stat">0 of 0</span>
+  </div>
+  <div class="row">
+    <span class="label">Category:</span>
+    <button class="chip active" data-filter-cat="">All</button>
+    <button class="chip" data-filter-cat="whooshes">Whooshes</button>
+    <button class="chip" data-filter-cat="hits">Hits</button>
+    <button class="chip" data-filter-cat="camera">Camera</button>
+    <button class="chip" data-filter-cat="risers">Risers</button>
+    <button class="chip" data-filter-cat="ui">UI clicks</button>
+    <button class="chip" data-filter-cat="notifications">Notifications</button>
+    <button class="chip" data-filter-cat="typewriter">Typewriter</button>
+    <button class="chip" data-filter-cat="reverse">Reverse</button>
+    <button class="chip" data-filter-cat="tape-stop">Tape stop</button>
+    <button class="chip" data-filter-cat="countdown">Countdown</button>
+    <button class="chip" data-filter-cat="stingers">Stingers</button>
+    <button class="chip" data-filter-cat="scifi-ui">Sci-fi UI</button>
+    <button class="chip" data-filter-cat="pickups">Pickups</button>
+    <button class="chip" data-filter-cat="light-leaks">Light leaks</button>
+    <button class="chip" data-filter-cat="glitch">Glitch</button>
+    <button class="chip" data-filter-cat="paper">Paper</button>
+    <button class="chip" data-filter-cat="vhs">VHS</button>
+    <button class="chip" data-filter-cat="atmosphere">Atmosphere</button>
+    <button class="chip" data-filter-cat="smoke">Smoke</button>
+    <button class="chip" data-filter-cat="sparks">Sparks</button>
+  </div>
+  <div class="row">
+    <span class="label">Kind:</span>
+    <button class="chip active" data-filter-kind="">All</button>
+    <button class="chip" data-filter-kind="paired">Paired</button>
+    <button class="chip" data-filter-kind="sfx">SFX only</button>
+    <button class="chip" data-filter-kind="overlay">Overlay only</button>
+  </div>
+</div>
+
+<main>
+  <div class="grid" id="grid"></div>
+</main>
+
+<div id="toast"></div>
+
+<footer>
+  Public preview build. Drop-into-Premiere is disabled (local-only feature).
+</footer>
+
+<script>
+  const SERVER_URL = 'http://localhost:8767';
+
+  let RECIPES = [];
+  let CATEGORIES = [];
+  let FILTER_CAT = '';
+  let FILTER_KIND = '';
+  let FILTER_TEXT = '';
+
+  function urlEncodePath(p) {
+    return p.split('/').map(encodeURIComponent).join('/');
+  }
+
+  function el(tag, attrs, children) {
+    const node = document.createElement(tag);
+    if (attrs) {
+      for (const k in attrs) {
+        if (k === 'className') node.className = attrs[k];
+        else if (k === 'text') node.textContent = attrs[k];
+        else if (k === 'dataset') {
+          for (const dk in attrs.dataset) node.dataset[dk] = attrs.dataset[dk];
+        } else if (k === 'title') node.title = attrs[k];
+        else node.setAttribute(k, attrs[k]);
+      }
+    }
+    if (children) for (const c of children) if (c) node.appendChild(c);
+    return node;
+  }
+
+  function makeCard(r) {
+    const card = el('div', {
+      className: 'card',
+      dataset: {
+        id: r.id,
+        category: r.category,
+        kind: r.kind,
+        search: [r.name, r.category, (r.tags || []).join(' '), r.notes || ''].join(' ').toLowerCase()
+      }
+    });
+
+    const stage = el('div', { className: 'stage' });
+    const overlayFile = r.overlay && r.overlay.file;
+    const sfxFile = r.sfx && r.sfx.file;
+    const overlayBackfill = r.overlay && r.overlay._backfill_needed;
+    const sfxBackfill = r.sfx && r.sfx._backfill_needed;
+    const backfillNeeded = overlayBackfill || sfxBackfill;
+    const backfillSuggestion = (r.overlay && r.overlay._backfill_suggestion) || (r.sfx && r.sfx._backfill_suggestion) || '';
+
+    if (overlayFile && !backfillNeeded) {
+      const v = el('video');
+      v.src = urlEncodePath(overlayFile);
+      v.autoplay = true;
+      v.loop = true;
+      v.muted = true;
+      v.playsInline = true;
+      v.preload = 'metadata';
+      stage.appendChild(v);
+    } else {
+      const ph = el('div', { className: 'placeholder' });
+      const bars = el('div', { className: 'eq-bars' });
+      for (let i = 0; i < 5; i++) bars.appendChild(el('div', { className: 'bar' }));
+      ph.appendChild(bars);
+      ph.appendChild(el('span', {
+        text: backfillNeeded ? 'Backfill pending' : 'SFX only — hover to audition'
+      }));
+      stage.appendChild(ph);
+    }
+
+    stage.appendChild(el('span', { className: 'kind-chip', text: r.kind }));
+    stage.appendChild(el('span', { className: 'duration-chip', text: r.duration_sec + 's' }));
+    if (backfillNeeded) stage.appendChild(el('span', { className: 'backfill-flag', text: 'BACKFILL' }));
+    if (r.source === 'epidemic') stage.appendChild(el('span', { className: 'source-tag', text: 'Epidemic' }));
+    const variantCount = (r.variants && r.variants.length) || 0;
+    if (variantCount > 1) {
+      stage.appendChild(el('span', { className: 'variant-chip', text: '1/' + variantCount + ' takes' }));
+    }
+    card.appendChild(stage);
+
+    const body = el('div', { className: 'card-body' });
+    body.appendChild(el('h3', { text: r.name }));
+
+    const cat = CATEGORIES.find(c => c.id === r.category);
+    const metaText = (cat ? cat.name : r.category) + (r.overlay && r.overlay.blend ? ' · ' + r.overlay.blend : '');
+    body.appendChild(el('p', { className: 'meta', text: metaText }));
+
+    if (r.tags && r.tags.length) {
+      const tagsRow = el('div', { className: 'tags' });
+      for (const t of r.tags) tagsRow.appendChild(el('span', { className: 'tag', text: t }));
+      body.appendChild(tagsRow);
+    }
+
+    if (backfillNeeded && backfillSuggestion) {
+      body.appendChild(el('p', { className: 'backfill-suggestion', text: backfillSuggestion }));
+    }
+    if (r.notes) body.appendChild(el('p', { className: 'notes', text: r.notes }));
+
+    const actions = el('div', { className: 'actions' });
+    const dropBtn = el('button', { className: 'btn btn-primary', text: 'Drop into Premiere' });
+    dropBtn.disabled = true;
+    dropBtn.classList.add('disabled');
+    dropBtn.title = 'Local-only — disabled in public preview';
+    actions.appendChild(dropBtn);
+
+    if (sfxFile) {
+      const audBtn = el('button', { className: 'btn btn-icon', text: '🔊', title: 'Audition SFX' });
+      audBtn.addEventListener('click', () => auditionSfx(r));
+      actions.appendChild(audBtn);
+    }
+
+    body.appendChild(actions);
+
+    if (variantCount > 1) {
+      const panel = el('div', { className: 'variants-panel hidden' });
+      for (let i = 0; i < r.variants.length; i++) {
+        const v = r.variants[i];
+        const row = el('div', { className: 'variant-row' });
+        row.appendChild(el('span', { className: 'v-idx', text: String(i + 1).padStart(2, '0') }));
+        row.appendChild(el('span', { className: 'v-dur', text: v.duration_sec.toFixed(2) + 's' }));
+        row.appendChild(el('span', { className: 'v-fill' }));
+        const audBtn = el('button', { className: 'btn-mini', text: '🔊', title: 'Audition this take' });
+        audBtn.addEventListener('click', () => playFile(v.file));
+        row.appendChild(audBtn);
+        const dropBtn2 = el('button', { className: 'btn-mini drop', text: 'Drop', title: 'Local-only — disabled in public preview' });
+        dropBtn2.disabled = true;
+        dropBtn2.classList.add('disabled');
+        row.appendChild(dropBtn2);
+        panel.appendChild(row);
+      }
+      const toggle = el('button', { className: 'variants-toggle', text: 'Show ' + (variantCount - 1) + ' more takes' });
+      toggle.addEventListener('click', () => {
+        const hidden = panel.classList.toggle('hidden');
+        toggle.textContent = hidden ? 'Show ' + (variantCount - 1) + ' more takes' : 'Hide takes';
+      });
+      body.appendChild(toggle);
+      body.appendChild(panel);
+    }
+
+    card.appendChild(body);
+
+    if ((r.kind === 'sfx' || backfillNeeded) && sfxFile) {
+      let hoverAudio = null;
+      card.addEventListener('mouseenter', () => {
+        if (hoverAudio) { hoverAudio.pause(); hoverAudio.currentTime = 0; }
+        hoverAudio = new Audio(urlEncodePath(sfxFile));
+        hoverAudio.volume = 0.7;
+        hoverAudio.play().catch(() => {});
+        card.classList.add('playing');
+      });
+      card.addEventListener('mouseleave', () => {
+        if (hoverAudio) { hoverAudio.pause(); hoverAudio.currentTime = 0; }
+        card.classList.remove('playing');
+      });
+    }
+
+    return card;
+  }
+
+  let auditionAudio = null;
+  function playFile(relPath) {
+    if (auditionAudio) { auditionAudio.pause(); auditionAudio.currentTime = 0; }
+    auditionAudio = new Audio(urlEncodePath(relPath));
+    auditionAudio.volume = 0.9;
+    auditionAudio.play().catch(err => toast('Audio play failed: ' + err.message, 'error'));
+  }
+  function auditionSfx(r) {
+    if (!r.sfx) return;
+    playFile(r.sfx.file);
+  }
+
+  async function dropRecipe(r, variantIndex) {
+    if ((r.overlay && r.overlay._backfill_needed) || (r.sfx && r.sfx._backfill_needed)) {
+      toast('This recipe still needs an asset backfill.', 'error');
+      return;
+    }
+    try {
+      let url = SERVER_URL + '/drop?id=' + encodeURIComponent(r.id);
+      if (variantIndex) url += '&variant=' + variantIndex;
+      const res = await fetch(url, { method: 'POST' });
+      if (!res.ok) {
+        const t = await res.text();
+        toast('Drop failed: ' + t, 'error');
+        return;
+      }
+      const data = await res.json();
+      toast('Dropped → ' + data.path, 'success');
+    } catch (err) {
+      toast('Drop helper not running. Start it with launch-recipes-server.bat', 'error');
+    }
+  }
+
+  let toastTimer = null;
+  function toast(msg, kind) {
+    const tEl = document.getElementById('toast');
+    tEl.textContent = msg;
+    tEl.className = 'visible ' + (kind || '');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { tEl.className = ''; }, 4000);
+  }
+
+  function applyFilters() {
+    const grid = document.getElementById('grid');
+    const cards = grid.querySelectorAll('.card');
+    let shown = 0;
+    cards.forEach(card => {
+      const matchCat = !FILTER_CAT || card.dataset.category === FILTER_CAT;
+      const matchKind = !FILTER_KIND || card.dataset.kind === FILTER_KIND;
+      const matchText = !FILTER_TEXT || card.dataset.search.includes(FILTER_TEXT);
+      const visible = matchCat && matchKind && matchText;
+      card.classList.toggle('hidden', !visible);
+      if (visible) shown++;
+    });
+    document.getElementById('stat').textContent = shown + ' of ' + cards.length;
+  }
+
+  function wireFilters() {
+    document.getElementById('search').addEventListener('input', (e) => {
+      FILTER_TEXT = e.target.value.trim().toLowerCase();
+      applyFilters();
+    });
+    document.querySelectorAll('[data-filter-cat]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-filter-cat]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        FILTER_CAT = btn.dataset.filterCat;
+        applyFilters();
+      });
+    });
+    document.querySelectorAll('[data-filter-kind]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-filter-kind]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        FILTER_KIND = btn.dataset.filterKind;
+        applyFilters();
+      });
+    });
+  }
+
+  function load() {
+    const grid = document.getElementById('grid');
+    try {
+      if (!window.RECIPES_DATA) {
+        throw new Error('window.RECIPES_DATA missing — recipes/recipes-data.js did not load. Run _automation/recipes-drop/sync-recipes-data.mjs.');
+      }
+      const data = window.RECIPES_DATA;
+      RECIPES = [...data.recipes].sort((a, b) => {
+        const pa = a.priority ?? 100;
+        const pb = b.priority ?? 100;
+        if (pa !== pb) return pa - pb;
+        return 0;
+      });
+      CATEGORIES = data.categories || [];
+      for (const r of RECIPES) grid.appendChild(makeCard(r));
+      wireFilters();
+      applyFilters();
+    } catch (err) {
+      const errP = el('p', { className: 'error', text: 'Failed to load recipes: ' + err.message });
+      grid.appendChild(errP);
+    }
+  }
+
+  load();
+</script>
+</body>
+</html>

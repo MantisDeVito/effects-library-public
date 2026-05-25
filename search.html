@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Search · Callum's Effects Library</title>
+<link rel="stylesheet" href="search.css" />
+</head>
+<body>
+
+<div class="topnav">
+  <a href="index.html" class="brand"><span class="brand-top">Callum's</span>Effects Library</a>
+  <nav>
+    <div class="group current" data-group="search">
+      <a href="search.html" class="group-head">Search</a>
+    </div>
+
+    <div class="group" data-group="icons">
+      <a href="icons.html" class="group-head">Icons</a>
+    </div>
+
+    <div class="group" data-group="text">
+      <a href="text.html" class="group-head">Text</a>
+      <div class="dropdown">
+        <a href="text.html" data-page="text">Text</a>
+        <a href="lower-thirds.html" data-page="lower-thirds">Lower thirds</a>
+        <a href="captions.html" data-page="captions">Captions</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="music">
+      <a href="music.html" class="group-head">Music</a>
+    </div>
+
+    <div class="group" data-group="motion">
+      <span class="group-head">Motion</span>
+      <div class="dropdown">
+        <a href="entrances.html" data-page="entrances">Entrances &amp; exits</a>
+        <a href="mograph.html" data-page="mograph">Mograph</a>
+        <a href="beats.html" data-page="beats">Beats</a>
+        <a href="shapes.html" data-page="shapes">Shapes</a>
+        <a href="logos.html" data-page="logos">Logos</a>
+        <a href="ease-curves.html" data-page="ease-curves">Ease curves</a>
+        <a href="speedometer.html" data-page="speedometer">Speedometer</a>
+        <a href="scribbles.html" data-page="scribbles">Scribbles</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="visual">
+      <span class="group-head">Visual</span>
+      <div class="dropdown">
+        <a href="colours.html" data-page="colours">Colours</a>
+        <a href="atmosphere.html" data-page="atmosphere">Atmosphere</a>
+        <a href="overlays.html" data-page="overlays">Overlays</a>
+        <a href="glitch.html" data-page="glitch">Glitch</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="cinematography">
+      <span class="group-head">Cinematography</span>
+      <div class="dropdown">
+        <a href="camera-moves.html" data-page="camera-moves">Camera moves</a>
+        <a href="transitions.html" data-page="transitions">Transitions</a>
+        <a href="lens.html" data-page="lens">Lens</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="tools">
+      <span class="group-head">Tools &amp; assets</span>
+      <div class="dropdown">
+        <a href="common-sfx.html" data-page="common-sfx">Common SFX</a>
+        <a href="sound-fx.html" data-page="sound-fx">Sound FX (AI)</a>
+        <a href="ai-toolchain.html" data-page="ai-toolchain">AI toolchain</a>
+        <a href="templates.html" data-page="templates">Templates</a>
+        <a href="shared-library/browser.html" data-page="browser">Shared library</a>
+        <a href="shared-library/Mograph/preview.html" data-page="mograph-preview">Mograph preview</a>
+        <a href="shared-library/Greenscreen/index.html" data-page="greenscreen">Greenscreen templates</a>
+        <a href="file:///D:/AIIMS/LIGHT%20LEAKS/index.html" data-page="light-leaks-d">Light leaks (D:)</a>
+      </div>
+    </div>
+  </nav>
+</div>
+
+<header class="hero">
+  <div class="head-l">
+    <div class="eyebrow">CALLUM · CATALOGUE INDEX · 2026</div>
+    <h1><span class="hero-top">Find</span>The<br>Effect.</h1>
+  </div>
+  <div class="head-r">
+    <b><span id="total-count">—</span></b> effects<br>
+    across <b><span id="cat-count">—</span></b> categories<br>
+    <span class="build-stamp" id="build-stamp">· loading</span>
+  </div>
+</header>
+
+<main class="layout">
+
+  <aside class="rail" aria-label="Filters">
+
+    <div class="search-block">
+      <div class="search-wrap">
+        <input id="search-input" class="search-input" type="search"
+               placeholder="Find an effect…  /  to focus"
+               autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="results-stat" id="results-stat" aria-live="polite">— / —</div>
+    </div>
+
+    <div class="filter-block">
+      <h3>// Category <button class="clear-link" id="clear-cat" type="button">clear</button></h3>
+      <div class="opt-list" id="cat-list"></div>
+    </div>
+
+    <div class="filter-block">
+      <h3>// Requires <button class="clear-link" id="clear-req" type="button">clear</button></h3>
+      <div class="opt-list" id="req-list"></div>
+    </div>
+
+    <button class="clear-all" id="clear-all" type="button">Reset all filters</button>
+  </aside>
+
+  <section class="results" aria-label="Results">
+
+    <div class="results-bar">
+      <div class="active-chips" id="active-chips" aria-label="Active filters"></div>
+      <div class="sort-wrap">
+        Sort:
+        <select id="sort-select" aria-label="Sort">
+          <option value="category">By category</option>
+          <option value="name">A–Z</option>
+          <option value="recent">Recent</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid" id="grid" aria-live="polite"></div>
+
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div>// Built on effects-catalogue.json · paste prompts directly into Claude</div>
+  <div>// Press / to search · Esc to clear</div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- Catalogue (window.EFFECTS_CATALOGUE) — loaded as a script tag, not fetched, so file:// works. -->
+<script src="effects-catalogue.js"></script>
+<script src="search.js"></script>
+
+</body>
+</html>

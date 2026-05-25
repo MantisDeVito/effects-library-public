@@ -1,0 +1,1299 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Atmosphere · Callum's Effects Library</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --card: #141414;
+    --border: #262626;
+    --border-hover: #3a3a3a;
+    --text: #ececec;
+    --muted: #888;
+    --accent: #ff7a1a;
+    --display: 'Impact', 'Haettenschweiler', 'Arial Narrow Bold', sans-serif;
+    --mono: 'SF Mono', Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: 32px 40px 80px;
+    max-width: 1480px;
+    margin: 0 auto;
+  }
+
+  .topnav {
+    display: flex; align-items: flex-end; gap: 24px;
+    padding-bottom: 20px; border-bottom: 1px solid var(--border);
+    margin-bottom: 28px; flex-wrap: wrap;
+  }
+  .topnav .brand {
+    font-family: var(--display); font-size: 18px;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text); text-decoration: none; white-space: nowrap;
+    display: inline-block; line-height: 1.1;
+  }
+  .topnav .brand .brand-top {
+    display: block; font-size: 12px; letter-spacing: 1.5px;
+    color: var(--accent); margin-bottom: 2px;
+  }
+  .topnav .brand:hover { color: var(--accent); }
+  .topnav nav {
+    display: flex; gap: 20px; font-size: 13px;
+    letter-spacing: 0.3px; text-transform: uppercase; flex-wrap: wrap;
+  }
+  .topnav nav a { color: var(--muted); text-decoration: none; transition: color 120ms; }
+  .topnav nav a:hover { color: var(--text); }
+  .topnav nav a.current { color: var(--accent); }
+
+  header.page-header {
+    padding-bottom: 24px; margin-bottom: 40px;
+  }
+  header.page-header h1 {
+    font-family: var(--display); font-size: 44px;
+    margin: 0 0 8px; letter-spacing: -0.5px; text-transform: uppercase;
+  }
+  header.page-header p { margin: 0; color: var(--muted); max-width: 680px; }
+
+  section { margin-bottom: 56px; }
+  section h2 {
+    font-family: var(--display); font-size: 24px;
+    text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px;
+  }
+  section > p.intro { color: var(--muted); max-width: 780px; margin: 0 0 24px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+  }
+  .demo {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 4px; padding: 18px;
+    cursor: pointer; transition: border-color 120ms, transform 120ms;
+    position: relative;
+  }
+  .demo:hover { border-color: var(--border-hover); }
+  .demo:active { transform: translateY(1px); }
+  .stage {
+    aspect-ratio: 16 / 9; background: #050505; border-radius: 3px;
+    position: relative; overflow: hidden; margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: center;
+    user-select: none; -webkit-user-select: none;
+  }
+  .demo h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; letter-spacing: 0.3px; }
+  .demo p.caption {
+    margin: 0; color: var(--muted); font-size: 13px;
+    font-family: var(--mono); line-height: 1.5;
+  }
+  .replay-hint {
+    position: absolute; top: 12px; right: 14px;
+    font-size: 10px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 1px; opacity: 0; transition: opacity 160ms;
+  }
+  .replay-hint::before { content: 'hover to loop'; }
+  .demo:hover .replay-hint { opacity: 1; }
+  .demo:fullscreen .replay-hint {
+    opacity: 0.85;
+    top: 28px; right: 32px;
+    font-size: 13px;
+  }
+  .demo:fullscreen .replay-hint::before { content: 'click to play · esc to close'; }
+
+  /* ============================================ */
+  /* Atmosphere — particles, weather, light       */
+  /* ============================================ */
+  .fx-plexus .stage,
+  .fx-embers .stage { background: #050505; }
+
+  .fx-plexus canvas,
+  .fx-embers canvas {
+    width: 100%; height: 100%;
+    display: block;
+  }
+
+  /* Film grain — canvas noise loop */
+  .fx-grain .stage { background: #050505; }
+  .fx-grain .plate {
+    position: absolute; inset: 0;
+    background-image: url('images/portrait-moody.png');
+    background-size: cover;
+    background-position: center;
+  }
+  .fx-grain canvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    mix-blend-mode: overlay;
+    opacity: 0.55;
+    pointer-events: none;
+  }
+
+  /* Dust motes in shaft */
+  .fx-motes .stage { background: #040404; }
+  .fx-motes .plate {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 30% 20%, #1a1410 0%, #050403 60%);
+  }
+  .fx-motes .shaft {
+    position: absolute; inset: 0;
+    background: linear-gradient(115deg,
+      transparent 32%,
+      rgba(255, 220, 150, 0.08) 42%,
+      rgba(255, 220, 150, 0.18) 50%,
+      rgba(255, 220, 150, 0.08) 58%,
+      transparent 68%);
+    mix-blend-mode: screen;
+    pointer-events: none;
+  }
+  .fx-motes canvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+
+  /* God rays — rotating light shafts */
+  .fx-rays .stage { background: #030303; }
+  .fx-rays .plate {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 75% 80%, #100800 0%, #030100 60%),
+      #030100;
+  }
+  .fx-rays .rays {
+    position: absolute;
+    left: -30%; top: -60%;
+    width: 180%; height: 220%;
+    background: conic-gradient(from 180deg at 50% 50%,
+      transparent 0deg,
+      rgba(255, 200, 120, 0.22) 4deg,
+      transparent 10deg,
+      transparent 20deg,
+      rgba(255, 200, 120, 0.14) 24deg,
+      transparent 32deg,
+      transparent 46deg,
+      rgba(255, 200, 120, 0.20) 50deg,
+      transparent 58deg,
+      transparent 72deg,
+      rgba(255, 200, 120, 0.16) 76deg,
+      transparent 86deg,
+      transparent 100deg,
+      rgba(255, 200, 120, 0.20) 104deg,
+      transparent 114deg,
+      transparent 360deg);
+    mix-blend-mode: screen;
+    filter: blur(6px);
+    animation: rays-drift 14s linear infinite;
+    transform-origin: 50% 50%;
+  }
+  @keyframes rays-drift {
+    0%   { transform: rotate(0deg); }
+    100% { transform: rotate(6deg); }
+  }
+
+  footer {
+    margin-top: 60px; padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 12px; line-height: 1.7;
+  }
+  footer code { background: var(--card); padding: 1px 6px; border-radius: 2px; color: var(--accent); }
+
+  @media (max-width: 640px) {
+    body { padding: 20px 16px 60px; }
+    header.page-header h1 { font-size: 32px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  /* ============================================ */
+  /* Fullscreen view — click a tile to expand     */
+  /* ============================================ */
+  .demo:fullscreen {
+    width: 100vw; height: 100vh;
+    padding: 48px 64px;
+    background: var(--bg);
+    border: none; border-radius: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 32px;
+    cursor: pointer;
+  }
+  .demo:fullscreen .stage {
+    width: min(92vw, calc((100vh - 220px) * 16 / 9));
+    aspect-ratio: 16 / 9;
+    margin-bottom: 0;
+    flex: none;
+  }
+  .demo:fullscreen h3 {
+    font-size: 26px;
+    text-align: center;
+    margin: 0 0 8px;
+  }
+  .demo:fullscreen p.caption {
+    text-align: center;
+    max-width: 720px;
+    font-size: 15px;
+  }
+
+  /* ============================================ */
+  /* Blob morph ambient background                */
+  /* ============================================ */
+  .fx-blob .stage { background: radial-gradient(ellipse at center, #111 0%, #050505 80%); }
+  .fx-blob .blob-svg { width: 80%; height: 80%; }
+  .fx-blob .blob-fill {
+    fill: url(#blobgrad);
+    filter: blur(0.4px);
+    animation: blob-rot 22s linear infinite;
+    transform-origin: center;
+  }
+  @keyframes blob-rot { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+  /* ============================================ */
+  /* Flow field particles                         */
+  /* ============================================ */
+  .fx-flow .stage { background: #030303; }
+  .fx-flow canvas { width: 100%; height: 100%; display: block; }
+
+  /* ============================================ */
+  /* Weather + environmental — P2.13b expansion    */
+  /* (2026-05-03)                                  */
+  /* ============================================ */
+
+  /* --- Fog rolling in ---------------------------------------- */
+  .fx-fog .stage { background: linear-gradient(180deg, #0a0d10 0%, #1c2228 70%, #2a3138 100%); }
+  .fx-fog .fog-plate {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 30% 70%, rgba(255,255,255,0.10), transparent 65%),
+      radial-gradient(ellipse at 70% 60%, rgba(255,255,255,0.06), transparent 70%);
+    pointer-events: none;
+  }
+  .fx-fog .fog-band {
+    position: absolute;
+    left: -50%; right: -50%; height: 60%;
+    bottom: 0;
+    background: linear-gradient(180deg,
+      transparent 0%,
+      rgba(220, 230, 240, 0.16) 35%,
+      rgba(220, 230, 240, 0.32) 65%,
+      rgba(220, 230, 240, 0.40) 100%);
+    filter: blur(14px);
+    transform: translateX(-25%);
+    pointer-events: none;
+  }
+  .fx-fog .fog-band.b2 {
+    height: 40%;
+    bottom: 18%;
+    opacity: 0.55;
+    background: linear-gradient(180deg,
+      transparent 0%,
+      rgba(180, 200, 215, 0.20) 50%,
+      rgba(180, 200, 215, 0.30) 100%);
+  }
+  .fx-fog .fog-band.b3 {
+    height: 28%;
+    bottom: 38%;
+    opacity: 0.32;
+  }
+  .fx-fog .fog-band     { animation: fog-drift  18s ease-in-out infinite alternate; }
+  .fx-fog .fog-band.b2  { animation: fog-drift2 22s ease-in-out infinite alternate; }
+  .fx-fog .fog-band.b3  { animation: fog-drift3 26s ease-in-out infinite alternate; }
+  @keyframes fog-drift  { 0% { transform: translateX(-25%); } 100% { transform: translateX(15%); } }
+  @keyframes fog-drift2 { 0% { transform: translateX( 10%); } 100% { transform: translateX(-30%); } }
+  @keyframes fog-drift3 { 0% { transform: translateX(-15%); } 100% { transform: translateX(25%); } }
+
+  /* --- Rain on glass ----------------------------------------- */
+  .fx-rain .stage {
+    background:
+      radial-gradient(ellipse at 50% 40%, #1a1f2a 0%, #0a0d12 70%);
+  }
+  .fx-rain .rain-blur {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(60, 90, 130, 0.18), rgba(20, 35, 50, 0.22));
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+  .fx-rain .streaks {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(105deg, transparent 38%, rgba(180, 210, 240, 0.55) 39%, transparent 40%),
+      linear-gradient(105deg, transparent 58%, rgba(180, 210, 240, 0.42) 59%, transparent 60%),
+      linear-gradient(105deg, transparent 22%, rgba(180, 210, 240, 0.35) 23%, transparent 24%),
+      linear-gradient(105deg, transparent 78%, rgba(180, 210, 240, 0.50) 79%, transparent 80%);
+    background-size: 80px 80px;
+    background-position: 0 0;
+    opacity: 0.85;
+    mix-blend-mode: screen;
+    animation: rain-streaks 1.4s linear infinite;
+  }
+  @keyframes rain-streaks {
+    0%   { background-position: 0 0, 25px 0, 60px 0, 95px 0; }
+    100% { background-position: 80px 220px, 105px 220px, 140px 220px, 175px 220px; }
+  }
+  .fx-rain .droplets {
+    position: absolute; inset: 0; pointer-events: none;
+  }
+  .fx-rain .droplets .d {
+    position: absolute;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.85), rgba(170,200,235,0.4) 60%, transparent 75%);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
+
+  /* --- Falling snow ------------------------------------------ */
+  .fx-snow .stage {
+    background: linear-gradient(180deg, #0a1218 0%, #1a232e 70%, #28323d 100%);
+  }
+  .fx-snow .snow-layer { position: absolute; inset: 0; pointer-events: none; }
+  .fx-snow .flake {
+    position: absolute; top: -6%;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 4px rgba(255,255,255,0.5);
+    animation: snow-fall var(--dur, 9s) linear infinite;
+    animation-delay: var(--delay, 0s);
+    left: var(--x, 50%);
+    opacity: var(--op, 0.85);
+    transform: scale(var(--sc, 1));
+  }
+  @keyframes snow-fall {
+    0%   { transform: translate(0, -10vh) scale(var(--sc, 1)); }
+    50%  { transform: translate(8px, 50vh) scale(var(--sc, 1)); }
+    100% { transform: translate(-8px, 110vh) scale(var(--sc, 1)); }
+  }
+
+  /* --- Cigarette / wisp smoke -------------------------------- */
+  .fx-smoke .stage {
+    background: radial-gradient(ellipse at 50% 80%, #161514 0%, #050405 80%);
+  }
+  .fx-smoke .smoke-source {
+    position: absolute;
+    bottom: 6%; left: 50%;
+    transform: translateX(-50%);
+    width: 4px; height: 4px; border-radius: 50%;
+    background: rgba(255, 180, 120, 0.85);
+    box-shadow: 0 0 8px rgba(255, 140, 60, 0.7);
+  }
+  .fx-smoke .wisp {
+    position: absolute;
+    bottom: 8%; left: 50%;
+    width: 28px; height: 60px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 60%, rgba(220, 220, 220, 0.45), rgba(220, 220, 220, 0.10) 60%, transparent 80%);
+    transform-origin: 50% 100%;
+    filter: blur(6px);
+    opacity: 0;
+  }
+  .fx-smoke .wisp.w1 { animation: smoke-rise 6s ease-out infinite; }
+  .fx-smoke .wisp.w2 { animation: smoke-rise 6s ease-out 1.2s infinite; }
+  .fx-smoke .wisp.w3 { animation: smoke-rise 6s ease-out 2.4s infinite; }
+  .fx-smoke .wisp.w4 { animation: smoke-rise 6s ease-out 3.8s infinite; }
+  @keyframes smoke-rise {
+    0%   { opacity: 0; transform: translate(-50%, 0) scale(0.4); }
+    20%  { opacity: 0.8; transform: translate(-52%, -40px) scale(1.1); }
+    50%  { opacity: 0.4; transform: translate(-44%, -120px) scale(1.9); }
+    80%  { opacity: 0.12; transform: translate(-58%, -200px) scale(2.7); }
+    100% { opacity: 0; transform: translate(-50%, -260px) scale(3.4); }
+  }
+
+  /* --- Sun flare reflection ---------------------------------- */
+  .fx-flare .stage {
+    background:
+      radial-gradient(ellipse at 30% 70%, #2a1a0a 0%, #100804 60%),
+      #050302;
+  }
+  .fx-flare .flare-core {
+    position: absolute;
+    top: 28%; left: 68%;
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0%, rgba(255, 220, 140, 0.85) 25%, rgba(255, 160, 60, 0.4) 60%, transparent 100%);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 80px 30px rgba(255, 200, 100, 0.45);
+    animation: flare-pulse 5s ease-in-out infinite;
+  }
+  @keyframes flare-pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.95; }
+    50%      { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+  }
+  .fx-flare .flare-streak {
+    position: absolute;
+    top: 28%; left: 68%;
+    width: 240%; height: 4px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 200, 130, 0) 30%, rgba(255, 220, 160, 0.6) 50%, rgba(255, 200, 130, 0) 70%, transparent 100%);
+    transform: translate(-50%, -50%);
+    filter: blur(2px);
+    mix-blend-mode: screen;
+    animation: flare-streak 5s ease-in-out infinite;
+  }
+  @keyframes flare-streak {
+    0%, 100% { opacity: 0.65; transform: translate(-50%, -50%) scaleX(1); }
+    50%      { opacity: 1;    transform: translate(-50%, -50%) scaleX(1.1); }
+  }
+  .fx-flare .flare-ghost {
+    position: absolute;
+    top: 50%; left: 32%;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 180, 100, 0.6), transparent 70%);
+    transform: translate(-50%, -50%);
+    filter: blur(4px);
+    mix-blend-mode: screen;
+  }
+
+  /* --- Lens dust specks -------------------------------------- */
+  .fx-dust .stage {
+    background: radial-gradient(ellipse at 50% 50%, #181818 0%, #050505 80%);
+  }
+  .fx-dust .dust-layer { position: absolute; inset: 0; pointer-events: none; }
+  .fx-dust .speck {
+    position: absolute;
+    width: 3px; height: 3px; border-radius: 50%;
+    background: rgba(255, 245, 220, 0.65);
+    box-shadow: 0 0 4px rgba(255, 245, 220, 0.4);
+    top: var(--y, 50%); left: var(--x, 50%);
+    animation: dust-drift var(--dur, 28s) linear infinite;
+    animation-delay: var(--delay, 0s);
+    opacity: var(--op, 0.7);
+    transform: scale(var(--sc, 1));
+  }
+  @keyframes dust-drift {
+    0%   { transform: translate(0, 0) scale(var(--sc, 1)); opacity: 0; }
+    8%   { opacity: var(--op, 0.7); }
+    50%  { transform: translate(var(--dx, 30px), var(--dy, -20px)) scale(var(--sc, 1)); }
+    92%  { opacity: var(--op, 0.7); }
+    100% { transform: translate(calc(var(--dx, 30px) * 2), calc(var(--dy, -20px) * 2)) scale(var(--sc, 1)); opacity: 0; }
+  }
+
+  /* --- Heat shimmer ------------------------------------------ */
+  .fx-shimmer .stage {
+    background:
+      linear-gradient(180deg, #2a1a08 0%, #4a2c10 35%, #6e421a 60%, #8a5424 100%);
+  }
+  .fx-shimmer .heat-plate {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 100%, rgba(255, 200, 130, 0.40), transparent 65%),
+      linear-gradient(180deg, rgba(255, 220, 160, 0) 30%, rgba(255, 220, 160, 0.18) 100%);
+  }
+  .fx-shimmer .horizon {
+    position: absolute;
+    bottom: 35%; left: 0; right: 0;
+    height: 1px;
+    background: rgba(255, 230, 180, 0.5);
+    box-shadow: 0 0 8px rgba(255, 220, 140, 0.4);
+  }
+  .fx-shimmer .shimmer-band {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 60%;
+    filter: url(#atm-shimmer-displace);
+  }
+  .fx-shimmer .ground {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(180deg, transparent 0%, rgba(140, 80, 30, 0.35) 100%);
+  }
+
+/* === injected topnav css === */
+/* Grouped-bucket topnav — dropdowns for MOTION / VISUAL / CINEMATOGRAPHY / TOOLS.
+   Extends the existing .topnav base styles (which already define brand + link colours).
+   Selectors scoped to .topnav nav .group — safe to inject into any page. */
+.topnav nav { gap: 24px; }
+.topnav nav .group { position: relative; padding-bottom: 12px; margin-bottom: -12px; }
+.topnav nav .group .group-head {
+  color: var(--muted); text-decoration: none; cursor: default;
+  display: inline-block; padding: 4px 0;
+  text-transform: uppercase; letter-spacing: 0.3px;
+  font-weight: 500;
+}
+.topnav nav .group a.group-head { cursor: pointer; }
+.topnav nav .group:hover .group-head,
+.topnav nav .group:focus-within .group-head { color: var(--text); }
+.topnav nav .group.current .group-head { color: var(--accent); }
+/* Invisible bridge — covers the gap between group-head and dropdown so hover doesn't drop. */
+.topnav nav .group::after {
+  content: ''; position: absolute;
+  top: 100%; left: -16px; right: -16px;
+  height: 14px;
+  pointer-events: auto;
+}
+.topnav nav .group .dropdown {
+  position: absolute; top: calc(100% + 8px); left: -8px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 4px; padding: 6px 0;
+  display: none; flex-direction: column; min-width: 180px;
+  z-index: 100;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.topnav nav .group:hover .dropdown,
+.topnav nav .group:focus-within .dropdown { display: flex; }
+/* Small buffer above the first dropdown item so the mouse can land softly. */
+.topnav nav .group .dropdown::before {
+  content: ''; position: absolute; top: -10px; left: 0; right: 0; height: 10px;
+}
+.topnav nav .group .dropdown a {
+  padding: 8px 16px; color: var(--muted); text-decoration: none;
+  transition: color 120ms, background 120ms;
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.topnav nav .group .dropdown a:hover { color: var(--text); background: rgba(255, 122, 26, 0.06); }
+.topnav nav .group .dropdown a.current { color: var(--accent); }
+/* === end injected topnav css === */
+</style>
+
+  <script src="lib/lazy-media.js"></script>
+  <script src="lib/favorites.js"></script>
+  <script src="_solo.js" defer></script>
+</head>
+<body>
+
+<div class="topnav">
+  <a href="index.html" class="brand"><span class="brand-top">Callum's</span>Effects Library</a>
+  <nav>
+    <div class="group" data-group="search">
+      <a href="search.html" class="group-head">Search</a>
+    </div>
+
+    <div class="group" data-group="icons">
+      <a href="icons.html" class="group-head">Icons</a>
+    </div>
+
+    <div class="group" data-group="text">
+      <a href="text.html" class="group-head">Text</a>
+      <div class="dropdown">
+        <a href="text.html" data-page="text">Text</a>
+        <a href="lower-thirds.html" data-page="lower-thirds">Lower thirds</a>
+        <a href="captions.html" data-page="captions">Captions</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="music">
+      <a href="music.html" class="group-head">Music</a>
+    </div>
+
+    <div class="group" data-group="motion">
+      <span class="group-head">Motion</span>
+      <div class="dropdown">
+        <a href="entrances.html" data-page="entrances">Entrances &amp; exits</a>
+        <a href="mograph.html" data-page="mograph">Mograph</a>
+        <a href="beats.html" data-page="beats">Beats</a>
+        <a href="shapes.html" data-page="shapes">Shapes</a>
+        <a href="logos.html" data-page="logos">Logos</a>
+        <a href="ease-curves.html" data-page="ease-curves">Ease curves</a>
+        <a href="speedometer.html" data-page="speedometer">Speedometer</a>
+        <a href="scribbles.html" data-page="scribbles">Scribbles</a>
+      </div>
+    </div>
+
+    <div class="group current" data-group="visual">
+      <span class="group-head">Visual</span>
+      <div class="dropdown">
+        <a href="colours.html" data-page="colours">Colours</a>
+        <a href="atmosphere.html" class="current" data-page="atmosphere">Atmosphere</a>
+        <a href="overlays.html" data-page="overlays">Overlays</a>
+        <a href="glitch.html" data-page="glitch">Glitch</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="cinematography">
+      <span class="group-head">Cinematography</span>
+      <div class="dropdown">
+        <a href="camera-moves.html" data-page="camera-moves">Camera moves</a>
+        <a href="transitions.html" data-page="transitions">Transitions</a>
+        <a href="lens.html" data-page="lens">Lens</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="tools">
+      <span class="group-head">Tools &amp; assets</span>
+      <div class="dropdown">
+        <a href="common-sfx.html" data-page="common-sfx">Common SFX</a>
+        <a href="sound-fx.html" data-page="sound-fx">Sound FX (AI)</a>
+        <a href="ai-toolchain.html" data-page="ai-toolchain">AI toolchain</a>
+        <a href="templates.html" data-page="templates">Templates</a>
+        <a href="shared-library/browser.html" data-page="browser">Shared library</a>
+        <a href="shared-library/Mograph/preview.html" data-page="mograph-preview">Mograph preview</a>
+        <a href="shared-library/Greenscreen/index.html" data-page="greenscreen">Greenscreen templates</a>
+        <a href="file:///D:/AIIMS/LIGHT%20LEAKS/index.html" data-page="light-leaks-d">Light leaks (D:)</a>
+      </div>
+    </div>
+  </nav>
+</div>
+
+<header class="page-header">
+  <h1>Atmosphere</h1>
+  <p>The ambient layer that sells depth. Particles, grain, dust, volumetric rays — the texture that makes a flat comp feel like a space. Everything here is CSS/canvas-faked in the demos; in AE build with native particles, grain plugins, and shape-layer light shafts. For real drop-on-top plates see <a href="overlays.html" style="color: var(--accent);">Overlays</a>.</p>
+</header>
+
+<section>
+  <h2>The ambient layer</h2>
+  <p class="intro">Particles, grain, dust, rays. Texture that sells depth — use lightly, atmosphere as accent, not as content. Layer one or two, never all five.</p>
+  <div class="grid">
+
+    <div class="demo fx-plexus" id="plexus-lite-constellation">
+      <span class="replay-hint"></span>
+      <div class="stage"><canvas id="plexus-canvas"></canvas></div>
+      <h3>Plexus-lite constellation</h3>
+      <p class="caption">Points + lines within distance threshold. For AI/data/tech briefs. Full Plexus in AE adds Points from Paths + Noise Effector.</p>
+    </div>
+
+    <div class="demo fx-embers" id="ember-particles">
+      <span class="replay-hint"></span>
+      <div class="stage"><canvas id="embers-canvas"></canvas></div>
+      <h3>Ember particles</h3>
+      <p class="caption">CC Particle World equivalent — dust, embers, atmosphere. Birth rate, gravity, longevity, velocity drift.</p>
+    </div>
+
+    <div class="demo fx-grain" id="grain">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="plate"></div>
+        <canvas id="grain-canvas"></canvas>
+      </div>
+      <h3>Film grain loop</h3>
+      <p class="caption">Per-frame canvas noise at ~55% opacity over the footage, overlay blend. The analogue warmth pass.</p>
+    </div>
+
+    <div class="demo fx-motes" id="dust-motes-in-shaft">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="plate"></div>
+        <div class="shaft"></div>
+        <canvas id="motes-canvas"></canvas>
+      </div>
+      <h3>Dust motes in shaft</h3>
+      <p class="caption">Slow-drifting particles in a diagonal light shaft. Adds depth and "air" to interior or window scenes.</p>
+    </div>
+
+    <div class="demo fx-rays" id="god-rays">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="plate"></div>
+        <div class="rays"></div>
+      </div>
+      <h3>God rays</h3>
+      <p class="caption">Conic-gradient light shafts with screen blend and slow drift. Atmosphere, volume, divine intervention.</p>
+    </div>
+
+    <div class="demo fx-blob" id="blob-morph-background">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <svg class="blob-svg" viewBox="0 0 200 200">
+          <defs>
+            <linearGradient id="blobgrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ff7a1a" stop-opacity="0.85"/>
+              <stop offset="100%" stop-color="#ff3a1a" stop-opacity="0.5"/>
+            </linearGradient>
+          </defs>
+          <path class="blob-fill" id="blob-path" d=""/>
+        </svg>
+      </div>
+      <h3>Blob morph background</h3>
+      <p class="caption">Ambient gooey shape that never repeats exactly. Polar coordinates with per-point sine-wave perturbations + slow rotation. Drop behind any content for mood. JS-generated SVG path.</p>
+    </div>
+
+    <div class="demo fx-flow" id="flow-field-particles">
+      <span class="replay-hint"></span>
+      <div class="stage"><canvas id="flow-canvas"></canvas></div>
+      <h3>Flow field particles</h3>
+      <p class="caption">260 particles drifting through a noise field, canvas 2D with fading trails. Different from Plexus — this is generative flow, not a network graph. Works as a title background or ambient layer.</p>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>Weather + environmental</h2>
+  <p class="intro">Mood layers that sell where the shot is. Drop on top of footage at low opacity (15–35%) for storytelling — fog for tension, rain for melancholy, sun flare for warmth, snow for stillness. AIIMS Branding / TIWH staple.</p>
+  <div class="grid">
+
+    <div class="demo fx-fog" id="fog-rolling-in">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="fog-plate"></div>
+        <div class="fog-band b3"></div>
+        <div class="fog-band b2"></div>
+        <div class="fog-band"></div>
+      </div>
+      <h3>Fog rolling in</h3>
+      <p class="caption">Three layered horizontal fog bands drifting at different speeds with heavy blur. Volumetric depth, melancholic mood. AE: precomp two fractal noise layers with opacity ramps + slow X-position drift, screen blend over the plate.</p>
+    </div>
+
+    <div class="demo fx-rain" id="rain-on-glass">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="rain-blur"></div>
+        <div class="streaks"></div>
+        <div class="droplets" id="rain-droplets"></div>
+      </div>
+      <h3>Rain on glass</h3>
+      <p class="caption">Diagonal streak gradients animating downward + scattered droplet specks. The "looking out a wet window" mood. AE: CC Rainfall plus a CC Vector Blur on a duplicate plate for the glass distortion.</p>
+    </div>
+
+    <div class="demo fx-snow" id="falling-snow">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="snow-layer" id="snow-layer"></div>
+      </div>
+      <h3>Falling snow</h3>
+      <p class="caption">90 flakes falling at varied speeds with subtle horizontal sway. CSS keyframes + per-flake CSS variables for depth (size + opacity + duration vary). AE: CC Snow with depth-of-field, or particle world with size variation.</p>
+    </div>
+
+    <div class="demo fx-smoke" id="wisp-smoke">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="smoke-source"></div>
+        <div class="wisp w1"></div>
+        <div class="wisp w2"></div>
+        <div class="wisp w3"></div>
+        <div class="wisp w4"></div>
+      </div>
+      <h3>Wisp smoke</h3>
+      <p class="caption">Cigarette-style rising wisp from a glowing source point — four staggered puffs that scale and fade as they rise. Use sparingly; adds noir / contemplative tension. AE: Trapcode Particular emitter with Z-position drift, or precomp turbulent displacement on a soft white shape.</p>
+    </div>
+
+    <div class="demo fx-flare" id="sun-flare-reflection">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="flare-streak"></div>
+        <div class="flare-core"></div>
+        <div class="flare-ghost"></div>
+      </div>
+      <h3>Sun flare reflection</h3>
+      <p class="caption">Bright core + horizontal anamorphic streak + secondary ghost orb across-frame. Slow pulse on the streak so it breathes rather than sits. AE: Optical Flares preset, or shape-layer with screen blend + box blur.</p>
+    </div>
+
+    <div class="demo fx-dust" id="lens-dust">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="dust-layer" id="dust-layer"></div>
+      </div>
+      <h3>Lens dust specks</h3>
+      <p class="caption">~40 sub-pixel specks drifting slowly with parallax variation, fading in and out asynchronously. Different from "dust motes in shaft" (which is light-shaft-bound) — these are lens-surface dust, ambient. AE: Trapcode Particular with very low velocity + size jitter.</p>
+    </div>
+
+    <div class="demo fx-shimmer" id="heat-shimmer">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+          <defs>
+            <filter id="atm-shimmer-displace" x="-20%" y="-20%" width="140%" height="140%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.012 0.06" numOctaves="2" seed="3" result="noise">
+                <animate attributeName="baseFrequency" dur="6s" values="0.012 0.06; 0.018 0.08; 0.012 0.06" repeatCount="indefinite" />
+              </feTurbulence>
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="14" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+          </defs>
+        </svg>
+        <div class="ground"></div>
+        <div class="horizon"></div>
+        <div class="shimmer-band">
+          <div class="heat-plate"></div>
+        </div>
+      </div>
+      <h3>Heat shimmer</h3>
+      <p class="caption">SVG turbulence + displacement map applied to the lower half of the frame, animated baseFrequency for breathing distortion. Desert highway / hot-day exterior. AE: Turbulent Displace on a precomp with masked horizon line.</p>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  Grain on anything trying to feel warm. Rays on any interior with a window. Embers for fire, tension, or anything dying. Plexus only when a brief says "AI" or "data". These are texture, not content — layer lightly.
+</footer>
+
+<script>
+  function retrigger(el) {
+    el.classList.remove('playing');
+    void el.offsetWidth;
+    el.classList.add('playing');
+  }
+
+  function parseTime(s) {
+    s = (s || '').trim();
+    if (!s || s === '0s') return 0;
+    if (s.endsWith('ms')) return parseFloat(s);
+    if (s.endsWith('s'))  return parseFloat(s) * 1000;
+    return 0;
+  }
+  function maxAnimationMs(root) {
+    let max = 0;
+    const nodes = [root, ...root.querySelectorAll('*')];
+    nodes.forEach(el => {
+      const cs = getComputedStyle(el);
+      if (!cs.animationName || cs.animationName === 'none') return;
+      const names = cs.animationName.split(',');
+      const durs  = cs.animationDuration.split(',');
+      const dels  = cs.animationDelay.split(',');
+      for (let i = 0; i < names.length; i++) {
+        if (names[i].trim() === 'none') continue;
+        const total = parseTime(durs[i] || durs[0]) + parseTime(dels[i] || dels[0]);
+        if (total > max) max = total;
+      }
+    });
+    return max;
+  }
+
+  const cycleCache = new WeakMap();
+  function cycleFor(demo) {
+    if (cycleCache.has(demo)) return cycleCache.get(demo);
+    const hadPlaying = demo.classList.contains('playing');
+    if (!hadPlaying) demo.classList.add('playing');
+    void demo.offsetWidth;
+    const ms = Math.max(900, maxAnimationMs(demo) + 400);
+    if (!hadPlaying) demo.classList.remove('playing');
+    cycleCache.set(demo, ms);
+    return ms;
+  }
+
+  const hoverLoops = new WeakMap();
+  function startHoverLoop(demo) {
+    stopHoverLoop(demo);
+    retrigger(demo);
+    const cycle = cycleFor(demo);
+    const id = setInterval(() => retrigger(demo), cycle);
+    hoverLoops.set(demo, id);
+  }
+  function stopHoverLoop(demo) {
+    const id = hoverLoops.get(demo);
+    if (id) { clearInterval(id); hoverLoops.delete(demo); }
+  }
+
+  document.querySelectorAll('.demo').forEach(demo => {
+    demo.addEventListener('mouseenter', () => {
+      if (document.fullscreenElement) return;
+      startHoverLoop(demo);
+    });
+    demo.addEventListener('mouseleave', () => stopHoverLoop(demo));
+
+    demo.addEventListener('click', () => {
+      if (document.fullscreenElement === demo) {
+        retrigger(demo);
+        return;
+      }
+      stopHoverLoop(demo);
+      if (document.fullscreenElement) document.exitFullscreen();
+      const after = () => retrigger(demo);
+      const p = demo.requestFullscreen();
+      if (p && p.then) p.then(after).catch(after); else after();
+    });
+  });
+
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) {
+      document.querySelectorAll('.demo:hover').forEach(startHoverLoop);
+    }
+  });
+
+  window.addEventListener('load', () => {
+    document.querySelectorAll('.demo').forEach((demo, i) => {
+      setTimeout(() => retrigger(demo), 500 + i * 160);
+    });
+  });
+
+  // Plexus canvas — constellation network
+  (function initPlexus() {
+    const canvas = document.getElementById('plexus-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const DPR = window.devicePixelRatio || 1;
+
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * DPR;
+      canvas.height = rect.height * DPR;
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    const N = 28;
+    const THRESHOLD = 95;
+    let dots = [];
+    function seed() {
+      const rect = canvas.getBoundingClientRect();
+      dots = [];
+      for (let i = 0; i < N; i++) {
+        dots.push({
+          x: Math.random() * rect.width,
+          y: Math.random() * rect.height,
+          vx: (Math.random() - 0.5) * 0.45,
+          vy: (Math.random() - 0.5) * 0.45
+        });
+      }
+    }
+    seed();
+    window.addEventListener('resize', seed);
+
+    function tick() {
+      if (window.LazyMedia && !LazyMedia.isVisible(canvas)) { requestAnimationFrame(tick); return; }
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width, h = rect.height;
+      ctx.clearRect(0, 0, w, h);
+
+      for (const d of dots) {
+        d.x += d.vx;
+        d.y += d.vy;
+        if (d.x < 0 || d.x > w) d.vx *= -1;
+        if (d.y < 0 || d.y > h) d.vy *= -1;
+      }
+
+      ctx.lineWidth = 1;
+      for (let i = 0; i < N; i++) {
+        for (let j = i + 1; j < N; j++) {
+          const dx = dots[i].x - dots[j].x;
+          const dy = dots[i].y - dots[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < THRESHOLD) {
+            const alpha = (1 - dist / THRESHOLD) * 0.75;
+            ctx.strokeStyle = `rgba(255, 122, 26, ${alpha})`;
+            ctx.beginPath();
+            ctx.moveTo(dots[i].x, dots[i].y);
+            ctx.lineTo(dots[j].x, dots[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      ctx.fillStyle = '#ff7a1a';
+      for (const d of dots) {
+        ctx.beginPath();
+        ctx.arc(d.x, d.y, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      requestAnimationFrame(tick);
+    }
+    tick();
+  })();
+
+  // Embers canvas — rising particles
+  (function initEmbers() {
+    const canvas = document.getElementById('embers-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const DPR = window.devicePixelRatio || 1;
+
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * DPR;
+      canvas.height = rect.height * DPR;
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    const N = 90;
+    const particles = [];
+    function spawn() {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: Math.random() * rect.width,
+        y: rect.height + Math.random() * 20,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: -0.6 - Math.random() * 1.0,
+        life: 0,
+        maxLife: 80 + Math.random() * 100,
+        size: 0.8 + Math.random() * 2.2
+      };
+    }
+    for (let i = 0; i < N; i++) {
+      const p = spawn();
+      p.life = Math.random() * p.maxLife;
+      particles.push(p);
+    }
+
+    function tick() {
+      if (window.LazyMedia && !LazyMedia.isVisible(canvas)) { requestAnimationFrame(tick); return; }
+      const rect = canvas.getBoundingClientRect();
+      ctx.fillStyle = 'rgba(5, 5, 5, 0.22)';
+      ctx.fillRect(0, 0, rect.width, rect.height);
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life++;
+        const t = p.life / p.maxLife;
+        const alpha = Math.max(0, 1 - t) * 0.9;
+        const r = 255;
+        const g = Math.floor(140 + 80 * (1 - t));
+        const b = Math.floor(30 + 40 * (1 - t));
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        if (p.life > p.maxLife || p.y < -10) {
+          particles[i] = spawn();
+        }
+      }
+      requestAnimationFrame(tick);
+    }
+    tick();
+  })();
+
+  // Film grain — canvas noise, redrawn every frame
+  (function initGrain() {
+    const canvas = document.getElementById('grain-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = 240, H = 135;
+    canvas.width = W;
+    canvas.height = H;
+    const img = ctx.createImageData(W, H);
+
+    function tick() {
+      if (window.LazyMedia && !LazyMedia.isVisible(canvas)) { requestAnimationFrame(tick); return; }
+      const d = img.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const v = (Math.random() * 255) | 0;
+        d[i] = v;
+        d[i + 1] = v;
+        d[i + 2] = v;
+        d[i + 3] = 255;
+      }
+      ctx.putImageData(img, 0, 0);
+      requestAnimationFrame(tick);
+    }
+    tick();
+  })();
+
+  // Dust motes — slow-drifting particles that brighten inside the shaft
+  (function initMotes() {
+    const canvas = document.getElementById('motes-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const DPR = window.devicePixelRatio || 1;
+
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * DPR;
+      canvas.height = rect.height * DPR;
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    const N = 55;
+    const motes = [];
+    function spawn(rect) {
+      return {
+        x: Math.random() * rect.width,
+        y: Math.random() * rect.height,
+        vx: -0.08 - Math.random() * 0.12,
+        vy:  0.05 + Math.random() * 0.10,
+        size: 0.6 + Math.random() * 1.5,
+        base: 0.3 + Math.random() * 0.5
+      };
+    }
+    function init() {
+      const rect = canvas.getBoundingClientRect();
+      motes.length = 0;
+      for (let i = 0; i < N; i++) motes.push(spawn(rect));
+    }
+    init();
+    window.addEventListener('resize', init);
+
+    function shaftMul(x, y, w, h) {
+      const ax = 0.55 * w, ay = 0;
+      const bx = 0.25 * w, by = h;
+      const dx = bx - ax, dy = by - ay;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      const d = Math.abs(((x - ax) * dy - (y - ay) * dx) / len);
+      const falloff = Math.max(0, 1 - d / (0.18 * w));
+      return falloff;
+    }
+
+    function tick() {
+      if (window.LazyMedia && !LazyMedia.isVisible(canvas)) { requestAnimationFrame(tick); return; }
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width, h = rect.height;
+      ctx.clearRect(0, 0, w, h);
+
+      for (let i = 0; i < motes.length; i++) {
+        const m = motes[i];
+        m.x += m.vx;
+        m.y += m.vy;
+        if (m.x < -10 || m.y > h + 10) {
+          motes[i] = spawn(rect);
+          motes[i].x = w + 5;
+          motes[i].y = -5 + Math.random() * 10;
+          continue;
+        }
+        const glow = shaftMul(m.x, m.y, w, h);
+        const alpha = m.base * (0.25 + 0.85 * glow);
+        ctx.fillStyle = `rgba(255, 230, 180, ${alpha.toFixed(3)})`;
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, m.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      requestAnimationFrame(tick);
+    }
+    tick();
+  })();
+
+  // Blob morph ambient background — organic SVG path driven by sine perturbations
+  (function () {
+    const path = document.getElementById('blob-path');
+    if (!path) return;
+    const points = 10;
+    const cx = 100, cy = 100, baseR = 70;
+    const seeds = Array.from({length: points}, () => ({
+      amp: 4 + Math.random() * 10,
+      freq: 0.3 + Math.random() * 0.5,
+      phase: Math.random() * Math.PI * 2,
+    }));
+    function buildPath(t) {
+      const pts = [];
+      for (let i = 0; i < points; i++) {
+        const angle = (i / points) * Math.PI * 2;
+        const s = seeds[i];
+        const r = baseR + s.amp * Math.sin(t * s.freq + s.phase);
+        pts.push([cx + Math.cos(angle) * r, cy + Math.sin(angle) * r]);
+      }
+      const n = pts.length;
+      let d = 'M ' + pts[0][0].toFixed(2) + ' ' + pts[0][1].toFixed(2);
+      for (let i = 0; i < n; i++) {
+        const p0 = pts[(i - 1 + n) % n];
+        const p1 = pts[i];
+        const p2 = pts[(i + 1) % n];
+        const p3 = pts[(i + 2) % n];
+        const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
+        const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
+        const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
+        const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
+        d += ' C ' + cp1x.toFixed(2) + ' ' + cp1y.toFixed(2)
+           + ', ' + cp2x.toFixed(2) + ' ' + cp2y.toFixed(2)
+           + ', ' + p2[0].toFixed(2) + ' ' + p2[1].toFixed(2);
+      }
+      return d + ' Z';
+    }
+    let startTime = null;
+    function frame(ts) {
+      if (!startTime) startTime = ts;
+      path.setAttribute('d', buildPath((ts - startTime) / 1000));
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  })();
+
+  // Flow field particles — canvas 2D with fading trails
+  (function () {
+    const canvas = document.getElementById('flow-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let w, h;
+    function resize() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      w = rect.width; h = rect.height;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    function noise(x, y, t) {
+      return (
+        Math.sin(x * 0.012 + t * 0.0003) +
+        Math.sin(y * 0.014 + t * 0.00025) +
+        Math.sin((x + y) * 0.008 + t * 0.0002)
+      ) / 3;
+    }
+    const N = 260;
+    const parts = Array.from({length: N}, () => ({
+      x: Math.random() * w, y: Math.random() * h,
+      hue: 20 + Math.random() * 30,
+    }));
+    let t = 0;
+    function loop() {
+      if (window.LazyMedia && !LazyMedia.isVisible(canvas)) { requestAnimationFrame(loop); return; }
+      t += 16;
+      ctx.fillStyle = 'rgba(3, 3, 3, 0.08)';
+      ctx.fillRect(0, 0, w, h);
+      for (const p of parts) {
+        const n = noise(p.x, p.y, t);
+        const angle = n * Math.PI * 2;
+        p.x += Math.cos(angle) * 0.8;
+        p.y += Math.sin(angle) * 0.8;
+        if (p.x < 0 || p.x > w || p.y < 0 || p.y > h) {
+          p.x = Math.random() * w; p.y = Math.random() * h;
+        }
+        ctx.fillStyle = 'hsla(' + p.hue + ', 85%, 60%, 0.6)';
+        ctx.fillRect(p.x, p.y, 1.2, 1.2);
+      }
+      requestAnimationFrame(loop);
+    }
+    loop();
+  })();
+
+  // ================================================
+  // P2.13b weather / environmental builders
+  // ================================================
+
+  // Falling snow — spawn 90 flakes with random size / dur / delay
+  (function buildSnow() {
+    const host = document.getElementById('snow-layer');
+    if (!host) return;
+    const COUNT = 90;
+    for (let i = 0; i < COUNT; i++) {
+      const f = document.createElement('div');
+      f.className = 'flake';
+      const sc = 0.4 + Math.random() * 1.2;
+      f.style.setProperty('--x', (Math.random() * 100) + '%');
+      f.style.setProperty('--sc', sc.toFixed(2));
+      f.style.setProperty('--op', (0.4 + Math.random() * 0.6).toFixed(2));
+      f.style.setProperty('--dur', (5 + Math.random() * 10).toFixed(1) + 's');
+      f.style.setProperty('--delay', (-Math.random() * 12).toFixed(1) + 's');
+      host.appendChild(f);
+    }
+  })();
+
+  // Lens dust — spawn ~40 specks with random parallax drift
+  (function buildDust() {
+    const host = document.getElementById('dust-layer');
+    if (!host) return;
+    const COUNT = 40;
+    for (let i = 0; i < COUNT; i++) {
+      const s = document.createElement('div');
+      s.className = 'speck';
+      const sc = 0.5 + Math.random() * 1.5;
+      const dx = (Math.random() - 0.5) * 80;
+      const dy = (Math.random() - 0.5) * 80;
+      s.style.setProperty('--x', (Math.random() * 100) + '%');
+      s.style.setProperty('--y', (Math.random() * 100) + '%');
+      s.style.setProperty('--dx', dx.toFixed(1) + 'px');
+      s.style.setProperty('--dy', dy.toFixed(1) + 'px');
+      s.style.setProperty('--sc', sc.toFixed(2));
+      s.style.setProperty('--op', (0.4 + Math.random() * 0.5).toFixed(2));
+      s.style.setProperty('--dur', (18 + Math.random() * 22).toFixed(0) + 's');
+      s.style.setProperty('--delay', (-Math.random() * 30).toFixed(1) + 's');
+      host.appendChild(s);
+    }
+  })();
+
+  // Rain on glass — sprinkle ~30 droplet circles at random positions
+  (function buildRain() {
+    const host = document.getElementById('rain-droplets');
+    if (!host) return;
+    const COUNT = 30;
+    for (let i = 0; i < COUNT; i++) {
+      const d = document.createElement('div');
+      d.className = 'd';
+      const sc = 0.6 + Math.random() * 1.4;
+      d.style.left = (Math.random() * 100).toFixed(1) + '%';
+      d.style.top = (Math.random() * 100).toFixed(1) + '%';
+      d.style.transform = 'scale(' + sc.toFixed(2) + ')';
+      d.style.opacity = (0.5 + Math.random() * 0.5).toFixed(2);
+      host.appendChild(d);
+    }
+  })();
+</script>
+  </body>
+</html>

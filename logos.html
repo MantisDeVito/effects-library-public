@@ -1,0 +1,1291 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Logos · Callum's Effects Library</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --card: #141414;
+    --border: #262626;
+    --border-hover: #3a3a3a;
+    --text: #ececec;
+    --muted: #888;
+    --accent: #ff7a1a;
+    --accent-2: #ff3b30;
+    --display: 'Impact', 'Haettenschweiler', 'Arial Narrow Bold', sans-serif;
+    --mono: 'SF Mono', Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: 32px 40px 80px;
+    max-width: 1480px;
+    margin: 0 auto;
+  }
+
+  .topnav {
+    display: flex; align-items: flex-end; gap: 24px;
+    padding-bottom: 20px; border-bottom: 1px solid var(--border);
+    margin-bottom: 28px; flex-wrap: wrap;
+  }
+  .topnav .brand {
+    font-family: var(--display); font-size: 18px;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text); text-decoration: none; white-space: nowrap;
+    display: inline-block; line-height: 1.1;
+  }
+  .topnav .brand .brand-top {
+    display: block; font-size: 12px; letter-spacing: 1.5px;
+    color: var(--accent); margin-bottom: 2px;
+  }
+  .topnav .brand:hover { color: var(--accent); }
+  .topnav nav {
+    display: flex; gap: 20px; font-size: 13px;
+    letter-spacing: 0.3px; text-transform: uppercase; flex-wrap: wrap;
+  }
+  .topnav nav a { color: var(--muted); text-decoration: none; transition: color 120ms; }
+  .topnav nav a:hover { color: var(--text); }
+  .topnav nav a.current { color: var(--accent); }
+
+  header.page-header {
+    padding-bottom: 24px; margin-bottom: 40px;
+  }
+  header.page-header h1 {
+    font-family: var(--display); font-size: 44px;
+    margin: 0 0 8px; letter-spacing: -0.5px; text-transform: uppercase;
+  }
+  header.page-header p { margin: 0; color: var(--muted); max-width: 780px; }
+
+  section { margin-bottom: 56px; }
+  section h2 {
+    font-family: var(--display); font-size: 24px;
+    text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px;
+  }
+  section > p.intro { color: var(--muted); max-width: 780px; margin: 0 0 24px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+  }
+  .demo {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 4px; padding: 18px;
+    cursor: pointer; transition: border-color 120ms, transform 120ms;
+    position: relative;
+  }
+  .demo:hover { border-color: var(--border-hover); }
+  .demo:active { transform: translateY(1px); }
+  .stage {
+    aspect-ratio: 16 / 9; background: #050505; border-radius: 3px;
+    position: relative; overflow: hidden; margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: center;
+    user-select: none; -webkit-user-select: none;
+  }
+  .demo h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; letter-spacing: 0.3px; }
+  .demo p.caption {
+    margin: 0; color: var(--muted); font-size: 13px;
+    font-family: var(--mono); line-height: 1.5;
+  }
+  .replay-hint {
+    position: absolute; top: 12px; right: 14px;
+    font-size: 10px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 1px; opacity: 0; transition: opacity 160ms;
+  }
+  .replay-hint::before { content: 'hover to loop'; }
+  .demo:hover .replay-hint { opacity: 1; }
+  .demo:fullscreen .replay-hint {
+    opacity: 0.85;
+    top: 28px; right: 32px;
+    font-size: 13px;
+  }
+  .demo:fullscreen .replay-hint::before { content: 'click to play · esc to close'; }
+
+  /* ============================================ */
+  /* Three-beat logo reveal — vector ACME placeholder mark   */
+  /* ============================================ */
+
+  /* Shared SVG wordmark wrapper — every logo effect uses the same
+     vectorised #acme-mark symbol so the wordmark reads consistently. */
+  .logo-mark-svg {
+    width: 60%; max-width: 260px; height: auto;
+    display: block;
+    color: var(--text);
+    position: relative; z-index: 2;
+  }
+  .logo-block {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center;
+    position: relative; z-index: 2;
+    width: 100%; height: 100%;
+  }
+  .logo-tag {
+    font-size: 10px; letter-spacing: 4px;
+    text-transform: uppercase; color: var(--muted);
+    margin-top: 10px; opacity: 1;
+    position: relative; z-index: 2;
+  }
+  @keyframes tagline-in {
+    0%   { opacity: 0; transform: translateY(6px); }
+    50%  { opacity: 0; transform: translateY(6px); }
+    62%  { opacity: 1; transform: translateY(0); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Shared TM-late stack — every effect wraps its wordmark in a .logo-stack
+     so the letters (.logo-mark-svg) and the .logo-tm-late overlay share the
+     same coordinate space. Each effect animates the letters with its own
+     reveal; the TM pops in on beat 3 via the shared acme-tm-in keyframes. */
+  .logo-stack {
+    position: relative;
+    width: 60%; max-width: 260px;
+    aspect-ratio: 123 / 32;
+    color: var(--text);
+    z-index: 2;
+  }
+  .logo-stack .logo-mark-svg,
+  .logo-stack .logo-tm-late {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    max-width: none;
+    display: block;
+  }
+  .logo-tm-late {
+    opacity: 0;
+    transform: scale(0.55);
+    transform-origin: 92% 14%;
+  }
+  .demo.playing .logo-tm-late {
+    animation: acme-tm-in 2400ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  @keyframes acme-tm-in {
+    0%   { opacity: 0; transform: scale(0.55); }
+    60%  { opacity: 0; transform: scale(0.55); }
+    70%  { opacity: 1; transform: scale(1.25); }
+    80%  { opacity: 1; transform: scale(0.92); }
+    90%  { opacity: 1; transform: scale(1.05); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  /* --- A. Particle gather (original three-beat reveal) ------------- */
+  .fx-logo .stage { background: #050505; }
+  .logo-stage {
+    position: relative; width: 80%; height: 80%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-particles { position: absolute; inset: 0; }
+  .logo-particles .p {
+    position: absolute; width: 4px; height: 4px;
+    background: var(--accent); border-radius: 50%;
+    opacity: 0; top: 50%; left: 50%;
+  }
+  .fx-logo.playing .logo-particles .p {
+    animation: particle-gather 2400ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  @keyframes particle-gather {
+    0%   { opacity: 0; transform: translate(var(--sx), var(--sy)) scale(1); }
+    8%   { opacity: 0.9; transform: translate(var(--sx), var(--sy)) scale(1); }
+    25%  { opacity: 0.9; transform: translate(calc(var(--sx) * 0.3), calc(var(--sy) * 0.3)) scale(1); }
+    35%  { opacity: 0; transform: translate(0, 0) scale(0); }
+    100% { opacity: 0; }
+  }
+  .fx-logo .logo-mark-svg {
+    transform: scale(1); opacity: 1;
+  }
+  .fx-logo.playing .logo-mark-svg {
+    animation: logo-snap 2400ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  @keyframes logo-snap {
+    0%   { opacity: 0; transform: scale(0.92); }
+    32%  { opacity: 0; transform: scale(0.92); }
+    38%  { opacity: 1; transform: scale(1.08); }
+    48%  { opacity: 1; transform: scale(1.00); }
+    100% { opacity: 1; transform: scale(1.00); }
+  }
+  .fx-logo.playing .logo-tag {
+    animation: tagline-in 2400ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  .logo-sheen {
+    position: absolute; inset: 0;
+    background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.4) 50%, transparent 70%);
+    transform: translateX(-120%) skewX(-20deg);
+    pointer-events: none; z-index: 3; mix-blend-mode: overlay;
+  }
+  .fx-logo.playing .logo-sheen {
+    animation: sheen 2400ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  @keyframes sheen {
+    0%   { transform: translateX(-120%) skewX(-20deg); }
+    55%  { transform: translateX(-120%) skewX(-20deg); }
+    75%  { transform: translateX(120%) skewX(-20deg); }
+    100% { transform: translateX(120%) skewX(-20deg); }
+  }
+
+  /* --- B. Stamp impact — drop slam + shockwave ring ---------------- */
+  .fx-stamp .stage { background: #050505; }
+  .stamp-stage {
+    position: relative; width: 80%; height: 80%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .stamp-ring {
+    position: absolute;
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--accent);
+    opacity: 0;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .fx-stamp.playing .stamp-ring {
+    animation: stamp-ring 2400ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes stamp-ring {
+    0%   { opacity: 0; width: 20px; height: 20px; border-width: 2px; }
+    10%  { opacity: 0.9; width: 26px; height: 26px; }
+    32%  { opacity: 0.9; width: 48px; height: 48px; border-width: 2px; }
+    46%  { opacity: 0.85; width: 360px; height: 360px; border-width: 1px; }
+    64%  { opacity: 0; width: 460px; height: 460px; border-width: 1px; }
+    100% { opacity: 0; }
+  }
+  .fx-stamp .logo-mark-svg { opacity: 0; }
+  .fx-stamp.playing .logo-mark-svg {
+    animation: stamp-slam 2400ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  @keyframes stamp-slam {
+    0%   { opacity: 0; transform: scale(1.9) translateY(-40px); filter: blur(5px); }
+    32%  { opacity: 0; transform: scale(1.9) translateY(-40px); filter: blur(5px); }
+    42%  { opacity: 1; transform: scale(0.94) translateY(2px); filter: blur(0); }
+    50%  { transform: scale(1.05) translateY(0); }
+    60%  { transform: scale(1) translateY(0); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .fx-stamp.playing .logo-tag {
+    animation: tagline-in 2400ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  /* --- C. Iris reveal — circular clip opens over logo ------------- */
+  .fx-iris .stage { background: #050505; }
+  .iris-stage {
+    position: relative; width: 80%; height: 80%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .iris-pulse {
+    position: absolute; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 18px var(--accent);
+    opacity: 0;
+    top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+    pointer-events: none;
+  }
+  .fx-iris.playing .iris-pulse {
+    animation: iris-pulse 2400ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  @keyframes iris-pulse {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+    8%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    30%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    42%  { opacity: 0; transform: translate(-50%, -50%) scale(6); }
+    100% { opacity: 0; }
+  }
+  .iris-ring {
+    position: absolute; width: 40px; height: 40px; border-radius: 50%;
+    border: 1px solid var(--accent);
+    opacity: 0;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .fx-iris.playing .iris-ring {
+    animation: iris-ring 2400ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  @keyframes iris-ring {
+    0%   { opacity: 0; width: 10px; height: 10px; }
+    14%  { opacity: 0.9; width: 42px; height: 42px; }
+    32%  { opacity: 0.9; width: 82px; height: 82px; }
+    50%  { opacity: 0.5; width: 360px; height: 360px; border-width: 1px; }
+    66%  { opacity: 0; width: 440px; height: 440px; border-width: 1px; }
+    100% { opacity: 0; }
+  }
+  .iris-clip {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center;
+    position: relative; z-index: 2;
+    width: 100%; height: 100%;
+    clip-path: circle(0% at 50% 50%);
+    -webkit-clip-path: circle(0% at 50% 50%);
+  }
+  .fx-iris.playing .iris-clip {
+    animation: iris-open 2400ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  @keyframes iris-open {
+    0%   { clip-path: circle(0% at 50% 50%); -webkit-clip-path: circle(0% at 50% 50%); }
+    32%  { clip-path: circle(0% at 50% 50%); -webkit-clip-path: circle(0% at 50% 50%); }
+    48%  { clip-path: circle(75% at 50% 50%); -webkit-clip-path: circle(75% at 50% 50%); }
+    100% { clip-path: circle(75% at 50% 50%); -webkit-clip-path: circle(75% at 50% 50%); }
+  }
+
+  /* --- D. Chromatic lock — RGB split converges -------------------- */
+  .fx-chroma .stage { background: #050505; }
+  .chroma-stage {
+    position: relative; width: 80%; height: 80%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .chroma-mark {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .chroma-r { color: #ff3b30; mix-blend-mode: screen; opacity: 0; }
+  .chroma-c { color: #00e0ff; mix-blend-mode: screen; opacity: 0; }
+  .chroma-w { color: var(--text); opacity: 0; z-index: 3; }
+  .fx-chroma.playing .chroma-r {
+    animation: chroma-r 2400ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  .fx-chroma.playing .chroma-c {
+    animation: chroma-c 2400ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  .fx-chroma.playing .chroma-w {
+    animation: chroma-w 2400ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  @keyframes chroma-r {
+    0%   { opacity: 0; transform: translate(-50%, -50%) translate(-22px, 0); filter: blur(5px); }
+    8%   { opacity: 0.9; transform: translate(-50%, -50%) translate(-22px, 0); filter: blur(5px); }
+    32%  { opacity: 0.9; transform: translate(-50%, -50%) translate(-28px, 0); filter: blur(5px); }
+    46%  { opacity: 0.6; transform: translate(-50%, -50%) translate(0, 0); filter: blur(0); }
+    60%  { opacity: 0; transform: translate(-50%, -50%) translate(0, 0); }
+    100% { opacity: 0; }
+  }
+  @keyframes chroma-c {
+    0%   { opacity: 0; transform: translate(-50%, -50%) translate(22px, 0); filter: blur(5px); }
+    8%   { opacity: 0.9; transform: translate(-50%, -50%) translate(22px, 0); filter: blur(5px); }
+    32%  { opacity: 0.9; transform: translate(-50%, -50%) translate(28px, 0); filter: blur(5px); }
+    46%  { opacity: 0.6; transform: translate(-50%, -50%) translate(0, 0); filter: blur(0); }
+    60%  { opacity: 0; transform: translate(-50%, -50%) translate(0, 0); }
+    100% { opacity: 0; }
+  }
+  @keyframes chroma-w {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(1.04); filter: blur(2px); }
+    42%  { opacity: 0; transform: translate(-50%, -50%) scale(1.04); filter: blur(2px); }
+    52%  { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: drop-shadow(0 0 14px rgba(255,255,255,0.55)); }
+    70%  { opacity: 1; filter: drop-shadow(0 0 4px rgba(255,255,255,0.2)); }
+    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: drop-shadow(0 0 0 rgba(255,255,255,0)); }
+  }
+  /* Chroma TM overlay — absolutely centred in .chroma-stage to match the
+     white (.chroma-w) wordmark; pops in via the shared .logo-tm-late rules. */
+  .fx-chroma .chroma-tm-stack {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 4;
+    pointer-events: none;
+  }
+
+  /* --- E. Liquid pour — top-down fill ----------------------------- */
+  .fx-pour .stage { background: #050505; }
+  .pour-stage {
+    position: relative; width: 80%; height: 80%;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+  }
+  .pour-drop {
+    position: absolute;
+    width: 4px; height: 22px;
+    background: var(--accent);
+    border-radius: 2px 2px 6px 6px;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -130px);
+    opacity: 0;
+    box-shadow: 0 0 12px rgba(245, 65, 44, 0.8);
+    pointer-events: none;
+  }
+  .fx-pour.playing .pour-drop {
+    animation: pour-drop 2400ms cubic-bezier(0.55, 0, 0.85, 0.3);
+  }
+  @keyframes pour-drop {
+    0%   { opacity: 0; transform: translate(-50%, -150px) scaleY(0.6); }
+    6%   { opacity: 1; transform: translate(-50%, -140px) scaleY(0.6); }
+    28%  { opacity: 1; transform: translate(-50%, -60px) scaleY(1); }
+    34%  { opacity: 1; transform: translate(-50%, -26px) scaleY(1.8); }
+    38%  { opacity: 0; transform: translate(-50%, -20px) scaleY(0.1); }
+    100% { opacity: 0; }
+  }
+  .pour-line {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 0; height: 1px;
+    background: var(--accent);
+    box-shadow: 0 0 10px rgba(245, 65, 44, 0.7);
+    transform: translate(-50%, -28px);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .fx-pour.playing .pour-line {
+    animation: pour-line 2400ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  @keyframes pour-line {
+    0%   { opacity: 0; width: 0; }
+    34%  { opacity: 0; width: 0; }
+    38%  { opacity: 1; width: 240px; }
+    55%  { opacity: 0.6; width: 240px; }
+    70%  { opacity: 0; width: 240px; }
+    100% { opacity: 0; }
+  }
+  /* Liquid pour wipes the letters only; the TM pops in via the shared
+     .logo-tm-late rules above. */
+  .fx-pour .logo-stack .logo-mark-svg {
+    clip-path: inset(0 0 100% 0);
+    -webkit-clip-path: inset(0 0 100% 0);
+    opacity: 1;
+  }
+  .fx-pour.playing .logo-stack .logo-mark-svg {
+    animation: pour-fill 2400ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  @keyframes pour-fill {
+    0%   { clip-path: inset(0 0 100% 0); -webkit-clip-path: inset(0 0 100% 0); }
+    34%  { clip-path: inset(0 0 100% 0); -webkit-clip-path: inset(0 0 100% 0); }
+    54%  { clip-path: inset(0 0 0% 0); -webkit-clip-path: inset(0 0 0% 0); }
+    100% { clip-path: inset(0 0 0% 0); -webkit-clip-path: inset(0 0 0% 0); }
+  }
+
+  /* ============================================ */
+  /* More reveals — P2.13 expansion (2026-05-03)  */
+  /* ============================================ */
+
+  /* --- F. Brush stroke reveal -------------------------------- */
+  .fx-brush .stage { background: #050505; }
+  .fx-brush .brush-stage {
+    position: relative; width: 80%; height: 80%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fx-brush .logo-mark-svg {
+    clip-path: inset(0 100% 0 0);
+    -webkit-clip-path: inset(0 100% 0 0);
+    opacity: 1;
+  }
+  .fx-brush.playing .logo-mark-svg { animation: brush-reveal 2400ms cubic-bezier(0.55, 0, 0.45, 1); }
+  @keyframes brush-reveal {
+    0%   { clip-path: inset(0 100% 0 0); -webkit-clip-path: inset(0 100% 0 0); }
+    18%  { clip-path: inset(0 100% 0 0); -webkit-clip-path: inset(0 100% 0 0); }
+    52%  { clip-path: inset(0 0 0 0); -webkit-clip-path: inset(0 0 0 0); }
+    100% { clip-path: inset(0 0 0 0); -webkit-clip-path: inset(0 0 0 0); }
+  }
+  .fx-brush .brush-streak {
+    position: absolute;
+    width: 28px; height: 80%;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,122,26,0.6) 30%, var(--accent) 50%, rgba(255,122,26,0.6) 70%, transparent 100%);
+    transform: skewX(-12deg) translateX(-160%);
+    filter: blur(4px);
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+  .fx-brush.playing .brush-streak { animation: brush-streak 2400ms cubic-bezier(0.55, 0, 0.45, 1); }
+  @keyframes brush-streak {
+    0%   { transform: skewX(-12deg) translateX(-160%); opacity: 0; }
+    16%  { opacity: 1; }
+    52%  { transform: skewX(-12deg) translateX(160%); opacity: 1; }
+    62%  { opacity: 0; }
+    100% { opacity: 0; }
+  }
+
+  /* --- G. Geometric build (cascading stripes) ---------------- */
+  .fx-geo .stage { background: #050505; }
+  .fx-geo .geo-stage {
+    position: relative; width: 80%; height: 80%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fx-geo .geo-stripe {
+    position: absolute; left: 8%; right: 8%; height: 4px;
+    background: var(--accent); opacity: 0;
+    transform-origin: left center;
+  }
+  .fx-geo .geo-stripe.s1 { top: 30%; }
+  .fx-geo .geo-stripe.s2 { top: 50%; background: var(--text); }
+  .fx-geo .geo-stripe.s3 { top: 70%; }
+  .fx-geo.playing .geo-stripe.s1 { animation: geo-stripe-1 2400ms cubic-bezier(0.2, 0, 0, 1); }
+  .fx-geo.playing .geo-stripe.s2 { animation: geo-stripe-2 2400ms cubic-bezier(0.2, 0, 0, 1); }
+  .fx-geo.playing .geo-stripe.s3 { animation: geo-stripe-3 2400ms cubic-bezier(0.2, 0, 0, 1); }
+  @keyframes geo-stripe-1 {
+    0%   { transform: scaleX(0); opacity: 0; }
+    8%   { transform: scaleX(0); opacity: 1; }
+    24%  { transform: scaleX(1); opacity: 1; }
+    50%  { transform: scaleX(1); opacity: 0.4; }
+    100% { transform: scaleX(1); opacity: 0; }
+  }
+  @keyframes geo-stripe-2 {
+    0%   { transform: scaleX(0); opacity: 0; }
+    14%  { transform: scaleX(0); opacity: 1; }
+    32%  { transform: scaleX(1); opacity: 1; }
+    50%  { transform: scaleX(1); opacity: 0.6; }
+    100% { transform: scaleX(1); opacity: 0; }
+  }
+  @keyframes geo-stripe-3 {
+    0%   { transform: scaleX(0); opacity: 0; }
+    20%  { transform: scaleX(0); opacity: 1; }
+    40%  { transform: scaleX(1); opacity: 1; }
+    50%  { transform: scaleX(1); opacity: 0.4; }
+    100% { transform: scaleX(1); opacity: 0; }
+  }
+  .fx-geo .logo-mark-svg { opacity: 0; transform: scale(0.96); }
+  .fx-geo.playing .logo-mark-svg { animation: geo-mark 2400ms cubic-bezier(0.2, 0, 0, 1); }
+  @keyframes geo-mark {
+    0%   { opacity: 0; transform: scale(0.96); }
+    44%  { opacity: 0; transform: scale(0.96); }
+    56%  { opacity: 1; transform: scale(1.03); }
+    66%  { opacity: 1; transform: scale(1); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  .fx-geo.playing .logo-tm-late {
+    animation: acme-tm-in 2400ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  /* --- H. Light-streak pass ---------------------------------- */
+  .fx-streak .stage { background: #050505; }
+  .fx-streak .streak-stage {
+    position: relative; width: 80%; height: 80%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fx-streak .light-streak {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 60%;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255,255,255,0) 30%,
+      rgba(255,255,255,0.85) 50%,
+      rgba(255,255,255,0) 70%,
+      transparent 100%);
+    filter: blur(2px);
+    transform: translateX(-150%) skewX(-18deg);
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+  .fx-streak.playing .light-streak { animation: light-streak 2400ms cubic-bezier(0.4, 0, 0.2, 1); }
+  @keyframes light-streak {
+    0%   { transform: translateX(-150%) skewX(-18deg); }
+    14%  { transform: translateX(-150%) skewX(-18deg); }
+    50%  { transform: translateX(150%) skewX(-18deg); }
+    100% { transform: translateX(150%) skewX(-18deg); }
+  }
+  .fx-streak .logo-mark-svg { opacity: 0; }
+  .fx-streak.playing .logo-mark-svg { animation: streak-mark 2400ms cubic-bezier(0.2, 0, 0, 1); }
+  @keyframes streak-mark {
+    0%   { opacity: 0; filter: blur(3px); }
+    24%  { opacity: 0.2; filter: blur(2px); }
+    40%  { opacity: 1; filter: drop-shadow(0 0 12px rgba(255,255,255,0.45)); }
+    62%  { opacity: 1; filter: drop-shadow(0 0 0 transparent); }
+    100% { opacity: 1; filter: drop-shadow(0 0 0 transparent); }
+  }
+  .fx-streak.playing .logo-tm-late {
+    animation: acme-tm-in 2400ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  /* --- I. Glitch reveal -------------------------------------- */
+  .fx-glitch-rev .stage { background: #050505; }
+  .fx-glitch-rev .glitch-stage {
+    position: relative; width: 80%; height: 80%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fx-glitch-rev .glitch-mark {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .fx-glitch-rev .glitch-r { color: #ff2d2d; mix-blend-mode: screen; opacity: 0; }
+  .fx-glitch-rev .glitch-g { color: #00ff95; mix-blend-mode: screen; opacity: 0; }
+  .fx-glitch-rev .glitch-w { color: var(--text); opacity: 0; z-index: 3; }
+  .fx-glitch-rev.playing .glitch-r { animation: glr-r 2400ms steps(8, end); }
+  .fx-glitch-rev.playing .glitch-g { animation: glr-g 2400ms steps(8, end); }
+  .fx-glitch-rev.playing .glitch-w { animation: glr-w 2400ms cubic-bezier(0.2, 0, 0, 1); }
+  @keyframes glr-r {
+    0%   { opacity: 0; transform: translate(-50%, -50%) translate(-14px, -3px); }
+    8%   { opacity: 0.85; transform: translate(-50%, -50%) translate(-14px, -3px); clip-path: inset(20% 0 50% 0); }
+    16%  { transform: translate(-50%, -50%) translate(8px, 4px); clip-path: inset(40% 0 20% 0); }
+    24%  { transform: translate(-50%, -50%) translate(-6px, -8px); clip-path: inset(60% 0 0 0); }
+    32%  { transform: translate(-50%, -50%) translate(12px, 0); clip-path: inset(0 0 70% 0); }
+    40%  { transform: translate(-50%, -50%) translate(-22px, 0); clip-path: inset(0 0 0 0); opacity: 0.85; }
+    48%  { opacity: 0.6; transform: translate(-50%, -50%) translate(0, 0); clip-path: inset(0 0 0 0); }
+    58%  { opacity: 0; }
+    100% { opacity: 0; }
+  }
+  @keyframes glr-g {
+    0%   { opacity: 0; transform: translate(-50%, -50%) translate(14px, 3px); }
+    8%   { opacity: 0.7; transform: translate(-50%, -50%) translate(14px, 3px); clip-path: inset(0 0 60% 0); }
+    16%  { transform: translate(-50%, -50%) translate(-8px, -4px); clip-path: inset(50% 0 30% 0); }
+    24%  { transform: translate(-50%, -50%) translate(6px, 8px); clip-path: inset(20% 0 50% 0); }
+    32%  { transform: translate(-50%, -50%) translate(-12px, 0); clip-path: inset(70% 0 0 0); }
+    40%  { transform: translate(-50%, -50%) translate(22px, 0); clip-path: inset(0 0 0 0); opacity: 0.7; }
+    48%  { opacity: 0.4; transform: translate(-50%, -50%) translate(0, 0); }
+    58%  { opacity: 0; }
+    100% { opacity: 0; }
+  }
+  @keyframes glr-w {
+    0%   { opacity: 0; }
+    34%  { opacity: 0; }
+    44%  { opacity: 1; transform: translate(-50%, -50%) scale(1.05); filter: drop-shadow(0 0 10px rgba(255,255,255,0.5)); }
+    56%  { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: drop-shadow(0 0 0 transparent); }
+    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+  .fx-glitch-rev .glitch-tm-stack {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 4;
+    pointer-events: none;
+  }
+
+  /* --- J. Line draw perimeter -------------------------------- */
+  .fx-perimeter .stage { background: #050505; }
+  .fx-perimeter .perim-stage {
+    position: relative;
+    width: 60%; max-width: 320px;
+    aspect-ratio: 16 / 5;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fx-perimeter .perim-svg {
+    position: absolute; inset: -14px;
+    width: calc(100% + 28px); height: calc(100% + 28px);
+    overflow: visible;
+    pointer-events: none;
+  }
+  .fx-perimeter .perim-svg rect {
+    fill: none; stroke: var(--accent); stroke-width: 2;
+    stroke-dasharray: 1000; stroke-dashoffset: 1000;
+  }
+  .fx-perimeter.playing .perim-svg rect { animation: perim-trace 2400ms cubic-bezier(0.4, 0, 0.2, 1); }
+  @keyframes perim-trace {
+    0%   { stroke-dashoffset: 1000; opacity: 1; }
+    14%  { stroke-dashoffset: 1000; opacity: 1; }
+    52%  { stroke-dashoffset: 0; opacity: 1; }
+    78%  { stroke-dashoffset: 0; opacity: 0.4; }
+    100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+  .fx-perimeter .logo-mark-svg { opacity: 0; transform: scale(0.96); }
+  .fx-perimeter.playing .logo-mark-svg { animation: perim-mark 2400ms cubic-bezier(0.2, 0, 0, 1); }
+  @keyframes perim-mark {
+    0%   { opacity: 0; transform: scale(0.96); }
+    36%  { opacity: 0; transform: scale(0.96); }
+    52%  { opacity: 1; transform: scale(1.04); }
+    62%  { opacity: 1; transform: scale(1); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  .fx-perimeter.playing .logo-tm-late {
+    animation: acme-tm-in 2400ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  /* --- K. Mask wipe (vertical bar) --------------------------- */
+  .fx-mask .stage { background: #050505; }
+  .fx-mask .mask-stage {
+    position: relative; width: 80%; height: 80%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fx-mask .mask-bar {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 6px;
+    background: var(--accent);
+    box-shadow: 0 0 20px var(--accent), 0 0 40px rgba(255, 122, 26, 0.4);
+    transform: translateX(-150%);
+    pointer-events: none;
+  }
+  .fx-mask.playing .mask-bar { animation: mask-bar 2400ms cubic-bezier(0.4, 0, 0.2, 1); }
+  @keyframes mask-bar {
+    0%   { transform: translateX(-150%); opacity: 1; }
+    18%  { transform: translateX(-150%); opacity: 1; }
+    50%  { transform: translateX(150%); opacity: 1; }
+    62%  { transform: translateX(150%); opacity: 0; }
+    100% { opacity: 0; }
+  }
+  .fx-mask .logo-mark-svg {
+    clip-path: inset(0 100% 0 0);
+    -webkit-clip-path: inset(0 100% 0 0);
+    opacity: 1;
+  }
+  .fx-mask.playing .logo-mark-svg { animation: mask-reveal 2400ms cubic-bezier(0.4, 0, 0.2, 1); }
+  @keyframes mask-reveal {
+    0%   { clip-path: inset(0 100% 0 0); -webkit-clip-path: inset(0 100% 0 0); }
+    18%  { clip-path: inset(0 100% 0 0); -webkit-clip-path: inset(0 100% 0 0); }
+    50%  { clip-path: inset(0 0 0 0); -webkit-clip-path: inset(0 0 0 0); }
+    100% { clip-path: inset(0 0 0 0); -webkit-clip-path: inset(0 0 0 0); }
+  }
+  .fx-mask.playing .logo-tm-late {
+    animation: acme-tm-in 2400ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  /* --- L. Kinetic type into mark ----------------------------- */
+  .fx-kinetic .stage { background: #050505; }
+  .fx-kinetic .kin-stage {
+    position: relative; width: 80%; height: 80%;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .fx-kinetic .kin-phrase {
+    position: absolute;
+    font-family: var(--display);
+    font-size: 56px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    color: var(--text);
+    white-space: nowrap;
+    transform: scale(2.4) translateY(0);
+    opacity: 0;
+    text-transform: uppercase;
+  }
+  .fx-kinetic.playing .kin-phrase { animation: kin-phrase 2400ms cubic-bezier(0.65, 0, 0.35, 1); }
+  @keyframes kin-phrase {
+    0%   { transform: scale(2.4) translateY(0); opacity: 0; filter: blur(5px); letter-spacing: -1px; }
+    8%   { opacity: 1; }
+    34%  { transform: scale(1.1) translateY(0); opacity: 1; filter: blur(0); letter-spacing: 0; }
+    44%  { transform: scale(0.4) translateY(0); opacity: 0; filter: blur(2px); letter-spacing: -3px; }
+    100% { opacity: 0; }
+  }
+  .fx-kinetic .logo-mark-svg { opacity: 0; transform: scale(0.6); }
+  .fx-kinetic.playing .logo-mark-svg { animation: kin-mark 2400ms cubic-bezier(0.2, 0, 0, 1); }
+  @keyframes kin-mark {
+    0%   { opacity: 0; transform: scale(0.6); }
+    44%  { opacity: 0; transform: scale(0.6); }
+    52%  { opacity: 1; transform: scale(1.06); }
+    62%  { opacity: 1; transform: scale(1); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  .fx-kinetic.playing .logo-tm-late {
+    animation: acme-tm-in 2400ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  footer {
+    margin-top: 80px; padding-top: 32px;
+    border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 13px; max-width: 780px;
+  }
+
+  /* Fullscreen layout */
+  .demo:fullscreen {
+    background: var(--bg);
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+  }
+  .demo:fullscreen .stage {
+    width: min(90vw, 160vh);
+    max-height: 80vh;
+    aspect-ratio: 16 / 9;
+    margin-bottom: 24px;
+  }
+  .demo:fullscreen h3 {
+    font-family: var(--display);
+    font-size: 28px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-align: center;
+    margin: 0 0 8px;
+  }
+  .demo:fullscreen p.caption {
+    text-align: center;
+    max-width: 720px;
+    font-size: 15px;
+  }
+
+/* === injected topnav css === */
+/* Grouped-bucket topnav — dropdowns for MOTION / VISUAL / CINEMATOGRAPHY / TOOLS.
+   Extends the existing .topnav base styles (which already define brand + link colours).
+   Selectors scoped to .topnav nav .group — safe to inject into any page. */
+.topnav nav { gap: 24px; }
+.topnav nav .group { position: relative; padding-bottom: 12px; margin-bottom: -12px; }
+.topnav nav .group .group-head {
+  color: var(--muted); text-decoration: none; cursor: default;
+  display: inline-block; padding: 4px 0;
+  text-transform: uppercase; letter-spacing: 0.3px;
+  font-weight: 500;
+}
+.topnav nav .group a.group-head { cursor: pointer; }
+.topnav nav .group:hover .group-head,
+.topnav nav .group:focus-within .group-head { color: var(--text); }
+.topnav nav .group.current .group-head { color: var(--accent); }
+/* Invisible bridge — covers the gap between group-head and dropdown so hover doesn't drop. */
+.topnav nav .group::after {
+  content: ''; position: absolute;
+  top: 100%; left: -16px; right: -16px;
+  height: 14px;
+  pointer-events: auto;
+}
+.topnav nav .group .dropdown {
+  position: absolute; top: calc(100% + 8px); left: -8px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 4px; padding: 6px 0;
+  display: none; flex-direction: column; min-width: 180px;
+  z-index: 100;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.topnav nav .group:hover .dropdown,
+.topnav nav .group:focus-within .dropdown { display: flex; }
+/* Small buffer above the first dropdown item so the mouse can land softly. */
+.topnav nav .group .dropdown::before {
+  content: ''; position: absolute; top: -10px; left: 0; right: 0; height: 10px;
+}
+.topnav nav .group .dropdown a {
+  padding: 8px 16px; color: var(--muted); text-decoration: none;
+  transition: color 120ms, background 120ms;
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.topnav nav .group .dropdown a:hover { color: var(--text); background: rgba(255, 122, 26, 0.06); }
+.topnav nav .group .dropdown a.current { color: var(--accent); }
+/* === end injected topnav css === */
+</style>
+
+  <script src="lib/lazy-media.js"></script>
+  <script src="lib/favorites.js"></script>
+  <script src="_solo.js" defer></script>
+</head>
+<body>
+
+<!-- Shared SVG defs: a generic ACME placeholder wordmark used by every logo
+     effect. Replaced an actual brand mark with a generic placeholder so the
+     snippets ship as reusable templates without any client trademark. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Generic ACME placeholder wordmark. Fill uses currentColor so each
+         effect can tint it. -->
+    <symbol id="acme-mark" viewBox="0 0 123 32" overflow="visible" fill="currentColor">
+      <text x="0" y="26" font-family="Helvetica, Arial, sans-serif" font-weight="900" font-size="32" letter-spacing="-1">ACME</text>
+      <text x="100" y="10" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="9">TM</text>
+    </symbol>
+    <!-- Letter-only variant (no TM) — used by the liquid-pour effect so the
+         pour fills the letters, then the TM pops in separately at the end. -->
+    <symbol id="acme-letters" viewBox="0 0 123 32" overflow="visible" fill="currentColor">
+      <text x="0" y="26" font-family="Helvetica, Arial, sans-serif" font-weight="900" font-size="32" letter-spacing="-1">ACME</text>
+    </symbol>
+    <!-- TM-only variant — overlaid on top of #acme-letters so it can animate in separately. -->
+    <symbol id="acme-tm" viewBox="0 0 123 32" overflow="visible" fill="currentColor">
+      <text x="100" y="10" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="9">TM</text>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="topnav">
+  <a href="index.html" class="brand"><span class="brand-top">Callum's</span>Effects Library</a>
+  <nav>
+    <div class="group" data-group="search">
+      <a href="search.html" class="group-head">Search</a>
+    </div>
+
+    <div class="group" data-group="icons">
+      <a href="icons.html" class="group-head">Icons</a>
+    </div>
+
+    <div class="group" data-group="text">
+      <a href="text.html" class="group-head">Text</a>
+      <div class="dropdown">
+        <a href="text.html" data-page="text">Text</a>
+        <a href="lower-thirds.html" data-page="lower-thirds">Lower thirds</a>
+        <a href="captions.html" data-page="captions">Captions</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="music">
+      <a href="music.html" class="group-head">Music</a>
+    </div>
+
+    <div class="group current" data-group="motion">
+      <span class="group-head">Motion</span>
+      <div class="dropdown">
+        <a href="entrances.html" data-page="entrances">Entrances &amp; exits</a>
+        <a href="mograph.html" data-page="mograph">Mograph</a>
+        <a href="beats.html" data-page="beats">Beats</a>
+        <a href="shapes.html" data-page="shapes">Shapes</a>
+        <a href="logos.html" class="current" data-page="logos">Logos</a>
+        <a href="ease-curves.html" data-page="ease-curves">Ease curves</a>
+        <a href="speedometer.html" data-page="speedometer">Speedometer</a>
+        <a href="scribbles.html" data-page="scribbles">Scribbles</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="visual">
+      <span class="group-head">Visual</span>
+      <div class="dropdown">
+        <a href="colours.html" data-page="colours">Colours</a>
+        <a href="atmosphere.html" data-page="atmosphere">Atmosphere</a>
+        <a href="overlays.html" data-page="overlays">Overlays</a>
+        <a href="glitch.html" data-page="glitch">Glitch</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="cinematography">
+      <span class="group-head">Cinematography</span>
+      <div class="dropdown">
+        <a href="camera-moves.html" data-page="camera-moves">Camera moves</a>
+        <a href="transitions.html" data-page="transitions">Transitions</a>
+        <a href="lens.html" data-page="lens">Lens</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="tools">
+      <span class="group-head">Tools &amp; assets</span>
+      <div class="dropdown">
+        <a href="common-sfx.html" data-page="common-sfx">Common SFX</a>
+        <a href="sound-fx.html" data-page="sound-fx">Sound FX (AI)</a>
+        <a href="ai-toolchain.html" data-page="ai-toolchain">AI toolchain</a>
+        <a href="templates.html" data-page="templates">Templates</a>
+        <a href="shared-library/browser.html" data-page="browser">Shared library</a>
+        <a href="shared-library/Mograph/preview.html" data-page="mograph-preview">Mograph preview</a>
+        <a href="shared-library/Greenscreen/index.html" data-page="greenscreen">Greenscreen templates</a>
+        <a href="file:///D:/AIIMS/LIGHT%20LEAKS/index.html" data-page="light-leaks-d">Light leaks (D:)</a>
+      </div>
+    </div>
+  </nav>
+</div>
+
+<header class="page-header">
+  <h1>Logos</h1>
+  <p>The professional logo reveal is always three beats: anticipation → reveal → settle. Beat 1 is what makes it feel designed — everyone skips it. Five variants below, all driving the same vectorised ACME placeholder wordmark so you can compare the feel of each reveal without the type changing.</p>
+</header>
+
+<section>
+  <h2>Three-beat logo reveal</h2>
+  <p class="intro">Anticipation, reveal, settle. The shared wordmark lets you pick the personality — particles feel tech/editorial, stamp feels sport/impact, iris feels cinematic, chroma feels modern/music, pour feels crafted/luxury.</p>
+  <div class="grid">
+
+    <div class="demo fx-logo" id="particle-gather">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="logo-stage">
+          <div class="logo-particles" id="logo-particles"></div>
+          <div class="logo-block">
+            <div class="logo-stack">
+              <svg class="logo-mark-svg" viewBox="0 0 123 32" aria-label="Acme"><use href="#acme-letters"/></svg>
+              <svg class="logo-tm-late" viewBox="0 0 123 32" aria-hidden="true"><use href="#acme-tm"/></svg>
+            </div>
+          </div>
+          <div class="logo-sheen"></div>
+        </div>
+      </div>
+      <h3>Particle gather</h3>
+      <p class="caption">Beat 1: particles gather (0–32%). Beat 2: letters snap in w/ 108% overshoot (32–48%). Beat 3: sheen sweeps, TM pops in at the top-right (50–100%).</p>
+    </div>
+
+    <div class="demo fx-stamp" id="stamp-impact">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="stamp-stage">
+          <div class="stamp-ring"></div>
+          <div class="logo-block">
+            <div class="logo-stack">
+              <svg class="logo-mark-svg" viewBox="0 0 123 32" aria-label="Acme"><use href="#acme-letters"/></svg>
+              <svg class="logo-tm-late" viewBox="0 0 123 32" aria-hidden="true"><use href="#acme-tm"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <h3>Stamp impact</h3>
+      <p class="caption">Beat 1: shockwave ring charges (0–32%). Beat 2: letters slam from above at 190% scale, drop to 100% with bounce (32–50%). Beat 3: ring dissipates, TM stamps in at the top-right (50–100%).</p>
+    </div>
+
+    <div class="demo fx-iris" id="iris-reveal">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="iris-stage">
+          <div class="iris-pulse"></div>
+          <div class="iris-ring"></div>
+          <div class="iris-clip">
+            <div class="logo-stack">
+              <svg class="logo-mark-svg" viewBox="0 0 123 32" aria-label="Acme"><use href="#acme-letters"/></svg>
+              <svg class="logo-tm-late" viewBox="0 0 123 32" aria-hidden="true"><use href="#acme-tm"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <h3>Iris reveal</h3>
+      <p class="caption">Beat 1: center pulse + ring expand (0–32%). Beat 2: circular clip opens over the letters (32–48%). Beat 3: ring fades past the frame, TM pops in at the top-right (50–100%).</p>
+    </div>
+
+    <div class="demo fx-chroma" id="chromatic-lock">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="chroma-stage">
+          <svg class="logo-mark-svg chroma-mark chroma-r" viewBox="0 0 123 32" aria-hidden="true"><use href="#acme-letters"/></svg>
+          <svg class="logo-mark-svg chroma-mark chroma-c" viewBox="0 0 123 32" aria-hidden="true"><use href="#acme-letters"/></svg>
+          <svg class="logo-mark-svg chroma-mark chroma-w" viewBox="0 0 123 32" aria-label="Acme"><use href="#acme-letters"/></svg>
+          <div class="logo-stack chroma-tm-stack">
+            <svg class="logo-tm-late" viewBox="0 0 123 32" aria-hidden="true"><use href="#acme-tm"/></svg>
+          </div>
+        </div>
+      </div>
+      <h3>Chromatic lock</h3>
+      <p class="caption">Beat 1: red/cyan channels drift apart, blurred (0–32%). Beat 2: channels slam back to center, the white letters snap sharp (42–52%). Beat 3: drop-shadow bloom fades, TM pops in at the top-right (50–100%).</p>
+    </div>
+
+    <div class="demo fx-pour" id="liquid-pour">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="pour-stage">
+          <div class="pour-drop"></div>
+          <div class="pour-line"></div>
+          <div class="logo-stack">
+            <svg class="logo-mark-svg" viewBox="0 0 123 32" aria-label="Acme"><use href="#acme-letters"/></svg>
+            <svg class="logo-tm-late" viewBox="0 0 123 32" aria-hidden="true"><use href="#acme-tm"/></svg>
+          </div>
+        </div>
+      </div>
+      <h3>Liquid pour</h3>
+      <p class="caption">Beat 1: a drop falls from above and lands on the surface line (0–34%). Beat 2: letters fill top-to-bottom via a clip-path wipe (34–54%). Beat 3: surface line fades, TM pops in at the top-right as the final flourish (60–100%).</p>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>More reveals</h2>
+  <p class="intro">Seven additional reveal flavours added in P2.13. Same three-beat shape, same shared ACME wordmark — different signature motion. Use the brush / streak / glitch ones for editorial and music; perimeter / mask / geometric for corporate; kinetic for high-impact opens.</p>
+  <div class="grid">
+
+    <div class="demo fx-brush" id="brush-stroke">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="brush-stage">
+          <div class="logo-block">
+            <div class="logo-stack">
+              <svg class="logo-mark-svg" viewBox="0 0 123 32" aria-label="Acme"><use href="#acme-letters"/></svg>
+              <svg class="logo-tm-late" viewBox="0 0 123 32" aria-hidden="true"><use href="#acme-tm"/></svg>
+            </div>
+          </div>
+          <div class="brush-streak"></div>
+        </div>
+      </div>
+      <h3>Brush stroke</h3>
+      <p class="caption">Accent streak passes left-to-right; letters wipe in behind the leading edge with a slight skew. Editorial / kinetic flavour. AE: clip-path on a precomp via Set Matte synced to a brushed shape layer.</p>
+    </div>
+
+    <div class="demo fx-geo" id="geometric-build">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="geo-stage">
+          <div class="geo-stripe s1"></div>
+          <div class="geo-stripe s2"></div>
+          <div class="geo-stripe s3"></div>
+          <div class="logo-block">
+            <div class="logo-stack">
+              <svg class="logo-mark-svg" viewBox="0 0 123 32" aria-label="Acme"><use href="#acme-letters"/></svg>
+              <svg class="logo-tm-late" viewBox="0 0 123 32" aria-hidden="true"><use href="#acme-tm"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <h3>Geometric build</h3>
+      <p class="caption">Three accent stripes scaleX in cascading 200ms apart, dim down as the wordmark fades in over them. Confident corporate. AE: shape-layer scale-X keyframes with sequential offset; opacity ramp on the wordmark.</p>
+    </div>
+
+    <div class="demo fx-streak" id="light-streak">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="streak-stage">
+          <div class="logo-block">
+            <div class="logo-stack">
+              <svg class="logo-mark-svg" viewBox="0 0 123 32" aria-label="Acme"><use href="#acme-letters"/></svg>
+              <svg class="logo-tm-late" viewBox="0 0 123 32" aria-hidden="true"><use href="#acme-tm"/></svg>
+            </div>
+          </div>
+          <div class="light-streak"></div>
+        </div>
+      </div>
+      <h3>Light-streak pass</h3>
+      <p class="caption">A wide light bar passes across the frame; the wordmark blooms into focus as the streak crosses centre. Premium / product-launch flavour. AE: gradient layer with screen blend, motion-blur the streak.</p>
+    </div>
+
+    <div class="demo fx-glitch-rev" id="glitch-reveal">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="glitch-stage">
+          <svg class="logo-mark-svg glitch-mark glitch-r" viewBox="0 0 123 32" aria-hidden="true"><use href="#acme-letters"/></svg>
+          <svg class="logo-mark-svg glitch-mark glitch-g" viewBox="0 0 123 32" aria-hidden="true"><use href="#acme-letters"/></svg>
+          <svg class="logo-mark-svg glitch-mark glitch-w" viewBox="0 0 123 32" aria-label="Acme"><use href="#acme-letters"/></svg>
+          <div class="logo-stack glitch-tm-stack">
+            <svg class="logo-tm-late" viewBox="0 0 123 32" aria-hidden="true"><use href="#acme-tm"/></svg>
+          </div>
+        </div>
+      </div>
+      <h3>Glitch reveal</h3>
+      <p class="caption">RGB channels (red + green) jump-cut between offset positions and clip slices for 1 second, then snap-resolve to the white wordmark with a brief glow. Music / editorial / hacker. Different pattern from chromatic-lock — slice-based, stepped.</p>
+    </div>
+
+    <div class="demo fx-perimeter" id="line-draw-perimeter">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="perim-stage">
+          <svg class="perim-svg" viewBox="0 0 320 100" preserveAspectRatio="none">
+            <rect x="2" y="2" width="316" height="96" />
+          </svg>
+          <div class="logo-block">
+            <div class="logo-stack">
+              <svg class="logo-mark-svg" viewBox="0 0 123 32" aria-label="Acme"><use href="#acme-letters"/></svg>
+              <svg class="logo-tm-late" viewBox="0 0 123 32" aria-hidden="true"><use href="#acme-tm"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <h3>Line draw perimeter</h3>
+      <p class="caption">Single continuous stroke traces the rectangular frame around the wordmark in one motion, then the wordmark fades in inside. Frame fades out after. AE: trim-paths on a rectangle, cubic ease.</p>
+    </div>
+
+    <div class="demo fx-mask" id="mask-wipe">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="mask-stage">
+          <div class="logo-block">
+            <div class="logo-stack">
+              <svg class="logo-mark-svg" viewBox="0 0 123 32" aria-label="Acme"><use href="#acme-letters"/></svg>
+              <svg class="logo-tm-late" viewBox="0 0 123 32" aria-hidden="true"><use href="#acme-tm"/></svg>
+            </div>
+          </div>
+          <div class="mask-bar"></div>
+        </div>
+      </div>
+      <h3>Vertical mask wipe</h3>
+      <p class="caption">A glowing vertical bar sweeps across the frame; the wordmark wipes in from the leading edge. Sharper, cleaner cousin of the brush stroke. AE: linear wipe with thin highlight bar precomped on top.</p>
+    </div>
+
+    <div class="demo fx-kinetic" id="kinetic-into-mark">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="kin-stage">
+          <div class="kin-phrase">ACME GROUP</div>
+          <div class="logo-block">
+            <div class="logo-stack">
+              <svg class="logo-mark-svg" viewBox="0 0 123 32" aria-label="Acme"><use href="#acme-letters"/></svg>
+              <svg class="logo-tm-late" viewBox="0 0 123 32" aria-hidden="true"><use href="#acme-tm"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <h3>Kinetic type into mark</h3>
+      <p class="caption">Phrase scales in big and blurry, sharpens at peak, then collapses inwards into the small final wordmark. High-impact opener for product or campaign launches. AE: scale + tracking + blur keyframes on a text layer, swap to mark on the collapse.</p>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  This is a reference, not a template. Take the values, tighten them by eye in AE, and remember the skill brief:
+  one signature effect executed precisely beats three effects fighting each other.
+</footer>
+
+<script>
+  function retrigger(el) {
+    el.classList.remove('playing');
+    void el.offsetWidth;
+    el.classList.add('playing');
+  }
+
+  // ================================================
+  // Interaction model:
+  //   Grid view  — mouseenter loops the effect at its
+  //                natural cycle length; mouseleave stops.
+  //   Fullscreen — click replays the effect once. Esc
+  //                exits fullscreen. No auto-loop.
+  // ================================================
+  function parseTime(s) {
+    s = (s || '').trim();
+    if (!s || s === '0s') return 0;
+    if (s.endsWith('ms')) return parseFloat(s);
+    if (s.endsWith('s'))  return parseFloat(s) * 1000;
+    return 0;
+  }
+  function maxAnimationMs(root) {
+    let max = 0;
+    const nodes = [root, ...root.querySelectorAll('*')];
+    nodes.forEach(el => {
+      const cs = getComputedStyle(el);
+      if (!cs.animationName || cs.animationName === 'none') return;
+      const names = cs.animationName.split(',');
+      const durs  = cs.animationDuration.split(',');
+      const dels  = cs.animationDelay.split(',');
+      for (let i = 0; i < names.length; i++) {
+        if (names[i].trim() === 'none') continue;
+        const total = parseTime(durs[i] || durs[0]) + parseTime(dels[i] || dels[0]);
+        if (total > max) max = total;
+      }
+    });
+    return max;
+  }
+
+  const cycleCache = new WeakMap();
+  function cycleFor(demo) {
+    if (cycleCache.has(demo)) return cycleCache.get(demo);
+    const hadPlaying = demo.classList.contains('playing');
+    if (!hadPlaying) demo.classList.add('playing');
+    void demo.offsetWidth;
+    const ms = Math.max(900, maxAnimationMs(demo) + 400);
+    if (!hadPlaying) demo.classList.remove('playing');
+    cycleCache.set(demo, ms);
+    return ms;
+  }
+
+  const hoverLoops = new WeakMap();
+  function startHoverLoop(demo) {
+    stopHoverLoop(demo);
+    retrigger(demo);
+    const cycle = cycleFor(demo);
+    const id = setInterval(() => retrigger(demo), cycle);
+    hoverLoops.set(demo, id);
+  }
+  function stopHoverLoop(demo) {
+    const id = hoverLoops.get(demo);
+    if (id) { clearInterval(id); hoverLoops.delete(demo); }
+  }
+
+  document.querySelectorAll('.demo').forEach(demo => {
+    demo.addEventListener('mouseenter', () => {
+      if (document.fullscreenElement) return;
+      startHoverLoop(demo);
+    });
+    demo.addEventListener('mouseleave', () => stopHoverLoop(demo));
+
+    demo.addEventListener('click', () => {
+      if (document.fullscreenElement === demo) {
+        retrigger(demo);
+        return;
+      }
+      stopHoverLoop(demo);
+      if (document.fullscreenElement) document.exitFullscreen();
+      const after = () => retrigger(demo);
+      const p = demo.requestFullscreen();
+      if (p && p.then) p.then(after).catch(after); else after();
+    });
+  });
+
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) {
+      document.querySelectorAll('.demo:hover').forEach(startHoverLoop);
+    }
+  });
+
+  window.addEventListener('load', () => {
+    document.querySelectorAll('.demo').forEach((demo, i) => {
+      setTimeout(() => retrigger(demo), 500 + i * 160);
+    });
+  });
+
+  // Logo particles
+  (function buildParticles() {
+    const host = document.getElementById('logo-particles');
+    if (!host) return;
+    const COUNT = 40;
+    for (let i = 0; i < COUNT; i++) {
+      const p = document.createElement('div');
+      p.className = 'p';
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 80 + Math.random() * 70;
+      p.style.setProperty('--sx', `${Math.cos(angle) * dist}px`);
+      p.style.setProperty('--sy', `${Math.sin(angle) * dist}px`);
+      p.style.animationDelay = `${Math.random() * 120}ms`;
+      host.appendChild(p);
+    }
+  })();
+</script>
+  </body>
+</html>

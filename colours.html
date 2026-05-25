@@ -1,0 +1,1187 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Colours · Callum's Effects Library</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --card: #141414;
+    --border: #262626;
+    --border-hover: #3a3a3a;
+    --text: #ececec;
+    --muted: #888;
+    --accent: #ff7a1a;
+    --display: 'Impact', 'Haettenschweiler', 'Arial Narrow Bold', sans-serif;
+    --mono: 'SF Mono', Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: 32px 40px 80px;
+    max-width: 1480px;
+    margin: 0 auto;
+  }
+
+  .topnav {
+    display: flex; align-items: flex-end; gap: 24px;
+    padding-bottom: 20px; border-bottom: 1px solid var(--border);
+    margin-bottom: 28px; flex-wrap: wrap;
+  }
+  .topnav .brand {
+    font-family: var(--display); font-size: 18px;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text); text-decoration: none; white-space: nowrap;
+    display: inline-block; line-height: 1.1;
+  }
+  .topnav .brand .brand-top {
+    display: block; font-size: 12px; letter-spacing: 1.5px;
+    color: var(--accent); margin-bottom: 2px;
+  }
+  .topnav .brand:hover { color: var(--accent); }
+  .topnav nav {
+    display: flex; gap: 20px; font-size: 13px;
+    letter-spacing: 0.3px; text-transform: uppercase; flex-wrap: wrap;
+  }
+  .topnav nav a { color: var(--muted); text-decoration: none; transition: color 120ms; }
+  .topnav nav a:hover { color: var(--text); }
+  .topnav nav a.current { color: var(--accent); }
+
+  header.page-header {
+    padding-bottom: 24px; margin-bottom: 40px;
+  }
+  header.page-header h1 {
+    font-family: var(--display); font-size: 44px;
+    margin: 0 0 8px; letter-spacing: -0.5px; text-transform: uppercase;
+  }
+  header.page-header p { margin: 0; color: var(--muted); max-width: 680px; }
+
+  section { margin-bottom: 56px; }
+  section h2 {
+    font-family: var(--display); font-size: 24px;
+    text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px;
+  }
+  section > p.intro { color: var(--muted); max-width: 780px; margin: 0 0 24px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+  }
+  .demo {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 4px; padding: 18px;
+    cursor: pointer; transition: border-color 120ms, transform 120ms;
+    position: relative;
+  }
+  .demo:hover { border-color: var(--border-hover); }
+  .demo:active { transform: translateY(1px); }
+  .stage {
+    aspect-ratio: 16 / 9; background: #050505; border-radius: 3px;
+    position: relative; overflow: hidden; margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: center;
+    user-select: none; -webkit-user-select: none;
+  }
+  .demo h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; letter-spacing: 0.3px; }
+  .demo p.caption {
+    margin: 0; color: var(--muted); font-size: 13px;
+    font-family: var(--mono); line-height: 1.5;
+  }
+  .replay-hint {
+    position: absolute; top: 12px; right: 14px;
+    font-size: 10px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 1px; opacity: 0; transition: opacity 160ms;
+  }
+  .replay-hint::before { content: 'hover to loop'; }
+  .demo:hover .replay-hint { opacity: 1; }
+  .demo:fullscreen .replay-hint {
+    opacity: 0.85;
+    top: 28px; right: 32px;
+    font-size: 13px;
+  }
+  .demo:fullscreen .replay-hint::before { content: 'click to play · esc to close'; }
+
+  /* ============================================ */
+  /* Before/after reveal — shared pattern          */
+  /* Ungraded base is always visible; hover or    */
+  /* .playing fades the graded layer in on top.   */
+  /* ============================================ */
+  .fx-colour .replay-hint::before { content: 'hover to grade'; }
+  .fx-colour:fullscreen .replay-hint::before { content: 'click to replay · esc to close'; }
+  .fx-colour .stage > .base,
+  .fx-colour .stage > .graded {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .fx-colour .stage > .graded {
+    opacity: 0;
+    transition: opacity 420ms ease;
+  }
+  .fx-colour:hover .stage > .graded,
+  .fx-colour.playing .stage > .graded {
+    opacity: 1;
+  }
+  .fx-colour .stage > .tint {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 420ms ease;
+  }
+  .fx-colour:hover .stage > .tint,
+  .fx-colour.playing .stage > .tint {
+    opacity: 1;
+  }
+
+  /* ============================================ */
+  /* Cinematic Looks                               */
+  /* ============================================ */
+
+  /* 1. Teal & Orange */
+  .fx-teal-orange .graded { filter: url(#teal-orange); }
+
+  /* 2. Bleach Bypass */
+  .fx-bleach-bypass .graded {
+    filter: saturate(0.25) contrast(1.75) brightness(0.95);
+  }
+
+  /* 3. Fincher Fade */
+  .fx-fincher-fade .graded { filter: url(#fincher-fade); }
+
+  /* 4. Sepia Vintage */
+  .fx-sepia-vintage .graded { filter: url(#sepia-vintage) brightness(0.98); }
+
+  /* ============================================ */
+  /* Lighting Moods                                */
+  /* ============================================ */
+
+  /* 5. Golden Hour — SVG warm matrix (no hue-rotate) + warm radial glow */
+  .fx-golden-hour .graded {
+    filter: url(#golden-hour) brightness(1.06) contrast(1.04);
+  }
+  .fx-golden-hour .tint {
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(255, 170, 70, 0.35), transparent 60%),
+      linear-gradient(180deg, rgba(255, 140, 40, 0.08), transparent 45%);
+    mix-blend-mode: soft-light;
+  }
+
+  /* 6. Blue Hour */
+  .fx-blue-hour .graded { filter: url(#blue-hour); }
+  .fx-blue-hour .tint {
+    background: linear-gradient(180deg, rgba(26, 58, 90, 0.45), rgba(127, 204, 218, 0.12) 80%);
+    mix-blend-mode: multiply;
+  }
+
+  /* 7. Neon Midnight */
+  .fx-neon-midnight .graded {
+    filter: saturate(1.75) contrast(1.4) brightness(0.86);
+  }
+  .fx-neon-midnight .tint {
+    background:
+      radial-gradient(circle at 18% 72%, rgba(0, 229, 255, 0.45), transparent 45%),
+      radial-gradient(circle at 82% 30%, rgba(255, 45, 170, 0.45), transparent 45%);
+    mix-blend-mode: screen;
+  }
+
+  /* 8. Candlelight */
+  .fx-candlelight .graded { filter: url(#candlelight); }
+  .fx-candlelight .tint {
+    background: radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(40, 15, 0, 0.85) 120%);
+    mix-blend-mode: multiply;
+  }
+
+  /* ============================================ */
+  /* Gradient Maps                                 */
+  /* ============================================ */
+
+  /* 9. Indigo → Amber */
+  .fx-indigo-amber .graded { filter: url(#indigo-amber); }
+
+  /* 10. Risograph Plum */
+  .fx-risograph .graded { filter: url(#risograph-plum); }
+  .fx-risograph .tint {
+    background-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.7) 28%, transparent 32%);
+    background-size: 6px 6px;
+    mix-blend-mode: multiply;
+  }
+
+  /* ============================================ */
+  /* Animated Colour — auto-loop, no hover needed  */
+  /* ============================================ */
+
+  /* 11. Hue Drift */
+  .fx-hue-drift .only,
+  .fx-sat-punch .only {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .fx-hue-drift .only {
+    animation: hue-drift 12s linear infinite;
+  }
+  @keyframes hue-drift {
+    0%   { filter: hue-rotate(0deg) saturate(1.25); }
+    100% { filter: hue-rotate(360deg) saturate(1.25); }
+  }
+  .fx-hue-drift .replay-hint::before { content: 'auto-loop'; }
+  .fx-hue-drift .replay-hint { opacity: 0.35; }
+  .fx-hue-drift:hover .replay-hint { opacity: 0.85; }
+
+  /* 12. Saturation Punch */
+  .fx-sat-punch .only {
+    animation: sat-punch 600ms cubic-bezier(0.4, 0, 0.55, 1) infinite;
+  }
+  @keyframes sat-punch {
+    0%, 100% { filter: saturate(1) brightness(1); }
+    12%      { filter: saturate(2) brightness(1.12); }
+    28%      { filter: saturate(1) brightness(1); }
+  }
+  .fx-sat-punch .replay-hint::before { content: 'auto-loop'; }
+  .fx-sat-punch .replay-hint { opacity: 0.35; }
+  .fx-sat-punch:hover .replay-hint { opacity: 0.85; }
+
+  /* ============================================ */
+  /* LUT recipes — P2.13 (CSS-filter approximations) */
+  /* ============================================ */
+
+  /* Each recipe = filter chain on the .graded layer + optional .tint
+     overlay. CSS filters approximate true LUTs at "looks right at glance"
+     fidelity — for production-grade fidelity, swap the filter chain for
+     the corresponding .cube file in Premiere/Resolve. */
+
+  /* L1. Nordic Cool — desaturated, slight cool shift, lifted shadows */
+  .fx-nordic-cool .graded {
+    filter: saturate(0.62) hue-rotate(-12deg) brightness(0.97) contrast(1.05);
+  }
+  .fx-nordic-cool .tint {
+    background: linear-gradient(180deg, rgba(60, 110, 150, 0.18), rgba(40, 80, 120, 0.08));
+    mix-blend-mode: soft-light;
+  }
+
+  /* L2. Faded Film — lifted blacks, bleached saturation, paper warmth */
+  .fx-faded-film .graded {
+    filter: saturate(0.78) contrast(0.82) sepia(0.18) brightness(1.06);
+  }
+  .fx-faded-film .tint {
+    background: linear-gradient(180deg, rgba(255, 230, 180, 0.16), transparent 60%);
+    mix-blend-mode: soft-light;
+  }
+
+  /* L3. Warm Document — neutral skin + warm shadows for corporate interview */
+  .fx-warm-doc .graded {
+    filter: saturate(0.95) sepia(0.10) contrast(1.06) brightness(1.03);
+  }
+  .fx-warm-doc .tint {
+    background: radial-gradient(ellipse at 50% 60%, rgba(255, 200, 140, 0.18), transparent 70%);
+    mix-blend-mode: soft-light;
+  }
+
+  /* L4. Vintage Film Stock — Kodak-emulation chromatic curves + slight grain bias */
+  .fx-vintage-film .graded {
+    filter: saturate(1.18) sepia(0.22) hue-rotate(-8deg) contrast(1.12) brightness(1.02);
+  }
+  .fx-vintage-film .tint {
+    background: radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(40, 20, 0, 0.55) 110%);
+    mix-blend-mode: multiply;
+  }
+
+  /* L5. Moody Cinematic — low-key crushed blacks + selective saturation */
+  .fx-moody-cinematic .graded {
+    filter: saturate(0.55) brightness(0.82) contrast(1.38);
+  }
+  .fx-moody-cinematic .tint {
+    background:
+      radial-gradient(ellipse at 50% 50%, transparent 25%, rgba(0, 0, 0, 0.7) 100%),
+      linear-gradient(180deg, rgba(20, 50, 80, 0.18), rgba(0, 30, 50, 0.10));
+    mix-blend-mode: multiply;
+  }
+
+  /* L6. Urban High-Contrast — punchy mid-tones, slight cyan in shadows */
+  .fx-urban-hc .graded {
+    filter: saturate(1.30) contrast(1.42) brightness(1.04) hue-rotate(-4deg);
+  }
+  .fx-urban-hc .tint {
+    background:
+      radial-gradient(ellipse at 50% 25%, rgba(255, 255, 255, 0.10), transparent 55%);
+    mix-blend-mode: overlay;
+  }
+
+  /* L7. Sun-Kissed — warm highlights + lifted shadows */
+  .fx-sun-kissed .graded {
+    filter: saturate(1.22) brightness(1.10) contrast(1.04) sepia(0.10);
+  }
+  .fx-sun-kissed .tint {
+    background:
+      radial-gradient(ellipse at 70% 25%, rgba(255, 200, 130, 0.40), transparent 55%),
+      linear-gradient(180deg, rgba(255, 220, 170, 0.10), transparent 50%);
+    mix-blend-mode: screen;
+  }
+
+  /* L8. High-Contrast Drama — heavy S-curve, deep saturation, slight green-shadow shift */
+  .fx-drama .graded {
+    filter: saturate(0.85) contrast(1.65) brightness(0.92) hue-rotate(3deg);
+  }
+  .fx-drama .tint {
+    background:
+      radial-gradient(ellipse at 50% 50%, transparent 30%, rgba(0, 5, 0, 0.7) 110%);
+    mix-blend-mode: multiply;
+  }
+
+  /* ============================================ */
+  /* Photo treatments — static PNG + CSS pattern   */
+  /* (migrated from the old Looks tab)             */
+  /* ============================================ */
+
+  /* Halftone — REAL halftone (luminance-driven dot radius via canvas-2d).
+     Source image is the default state; canvas reveals on hover/play, then
+     fades back. Replaces the old fixed-grid mask pattern. */
+  .fx-halftone .stage { background: #f1ead8; }
+  .fx-halftone .src,
+  .fx-halftone .processed {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .fx-halftone .processed {
+    opacity: 0;
+    transition: opacity 360ms ease;
+    background: #f1ead8;
+  }
+  .fx-halftone:hover .processed,
+  .fx-halftone.playing .processed { opacity: 1; }
+
+  /* Sobel edge detection — line-art reduction via 3x3 Sobel kernel on canvas-2d */
+  .fx-edge-sobel .stage { background: #050505; }
+  .fx-edge-sobel .src,
+  .fx-edge-sobel .processed {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .fx-edge-sobel .processed {
+    opacity: 0;
+    transition: opacity 360ms ease;
+    background: #050505;
+  }
+  .fx-edge-sobel:hover .processed,
+  .fx-edge-sobel.playing .processed { opacity: 1; }
+
+  /* Bayer + Floyd-Steinberg dither — 1-bit reproduction via canvas-2d */
+  .fx-bayer-dither .stage,
+  .fx-fs-dither .stage { background: #f1ead8; }
+  .fx-bayer-dither .src, .fx-bayer-dither .processed,
+  .fx-fs-dither .src,    .fx-fs-dither .processed {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .fx-bayer-dither .processed,
+  .fx-fs-dither .processed {
+    opacity: 0;
+    transition: opacity 360ms ease;
+    background: #f1ead8;
+  }
+  .fx-bayer-dither:hover .processed,
+  .fx-bayer-dither.playing .processed,
+  .fx-fs-dither:hover .processed,
+  .fx-fs-dither.playing .processed { opacity: 1; }
+
+  /* Orton glow — blurred bright copy with screen blend */
+  .fx-orton .stage { background: #050505; }
+  .fx-orton .orton-plate {
+    position: absolute; inset: 0;
+    background-image: url('images/neon-alley.png');
+    background-size: cover;
+    background-position: center;
+  }
+  .fx-orton .orton-bloom {
+    position: absolute; inset: 0;
+    background-image: url('images/neon-alley.png');
+    background-size: cover;
+    background-position: center;
+    filter: blur(14px) brightness(1.45) saturate(1.25);
+    mix-blend-mode: screen;
+    opacity: 0.75;
+    pointer-events: none;
+  }
+  .fx-orton.playing .orton-bloom {
+    animation: orton-breathe 2400ms ease-in-out;
+  }
+  @keyframes orton-breathe {
+    0%   { opacity: 0; }
+    45%  { opacity: 0.85; }
+    100% { opacity: 0.75; }
+  }
+
+  footer {
+    margin-top: 60px; padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 12px; line-height: 1.7;
+  }
+  footer code { background: var(--card); padding: 1px 6px; border-radius: 2px; color: var(--accent); }
+
+  @media (max-width: 640px) {
+    body { padding: 20px 16px 60px; }
+    header.page-header h1 { font-size: 32px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  /* ============================================ */
+  /* Fullscreen view — click a tile to expand     */
+  /* ============================================ */
+  .demo:fullscreen {
+    width: 100vw; height: 100vh;
+    padding: 48px 64px;
+    background: var(--bg);
+    border: none; border-radius: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 32px;
+    cursor: pointer;
+  }
+  .demo:fullscreen .stage {
+    width: min(92vw, calc((100vh - 220px) * 16 / 9));
+    aspect-ratio: 16 / 9;
+    margin-bottom: 0;
+    flex: none;
+  }
+  .demo:fullscreen h3 {
+    font-size: 26px;
+    text-align: center;
+    margin: 0 0 8px;
+  }
+  .demo:fullscreen p.caption {
+    text-align: center;
+    max-width: 720px;
+    font-size: 15px;
+  }
+
+/* === injected topnav css === */
+/* Grouped-bucket topnav — dropdowns for MOTION / VISUAL / CINEMATOGRAPHY / TOOLS.
+   Extends the existing .topnav base styles (which already define brand + link colours).
+   Selectors scoped to .topnav nav .group — safe to inject into any page. */
+.topnav nav { gap: 24px; }
+.topnav nav .group { position: relative; padding-bottom: 12px; margin-bottom: -12px; }
+.topnav nav .group .group-head {
+  color: var(--muted); text-decoration: none; cursor: default;
+  display: inline-block; padding: 4px 0;
+  text-transform: uppercase; letter-spacing: 0.3px;
+  font-weight: 500;
+}
+.topnav nav .group a.group-head { cursor: pointer; }
+.topnav nav .group:hover .group-head,
+.topnav nav .group:focus-within .group-head { color: var(--text); }
+.topnav nav .group.current .group-head { color: var(--accent); }
+/* Invisible bridge — covers the gap between group-head and dropdown so hover doesn't drop. */
+.topnav nav .group::after {
+  content: ''; position: absolute;
+  top: 100%; left: -16px; right: -16px;
+  height: 14px;
+  pointer-events: auto;
+}
+.topnav nav .group .dropdown {
+  position: absolute; top: calc(100% + 8px); left: -8px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 4px; padding: 6px 0;
+  display: none; flex-direction: column; min-width: 180px;
+  z-index: 100;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.topnav nav .group:hover .dropdown,
+.topnav nav .group:focus-within .dropdown { display: flex; }
+/* Small buffer above the first dropdown item so the mouse can land softly. */
+.topnav nav .group .dropdown::before {
+  content: ''; position: absolute; top: -10px; left: 0; right: 0; height: 10px;
+}
+.topnav nav .group .dropdown a {
+  padding: 8px 16px; color: var(--muted); text-decoration: none;
+  transition: color 120ms, background 120ms;
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.topnav nav .group .dropdown a:hover { color: var(--text); background: rgba(255, 122, 26, 0.06); }
+.topnav nav .group .dropdown a.current { color: var(--accent); }
+/* === end injected topnav css === */
+</style>
+
+  <script src="lib/lazy-media.js"></script>
+  <script src="lib/favorites.js"></script>
+  <script src="lib/canvas-image-processing-data.js"></script>
+  <script src="lib/canvas-image-processing.js"></script>
+  <script src="_solo.js" defer></script>
+</head>
+<body>
+
+<div class="topnav">
+  <a href="index.html" class="brand"><span class="brand-top">Callum's</span>Effects Library</a>
+  <nav>
+    <div class="group" data-group="search">
+      <a href="search.html" class="group-head">Search</a>
+    </div>
+
+    <div class="group" data-group="icons">
+      <a href="icons.html" class="group-head">Icons</a>
+    </div>
+
+    <div class="group" data-group="text">
+      <a href="text.html" class="group-head">Text</a>
+      <div class="dropdown">
+        <a href="text.html" data-page="text">Text</a>
+        <a href="lower-thirds.html" data-page="lower-thirds">Lower thirds</a>
+        <a href="captions.html" data-page="captions">Captions</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="music">
+      <a href="music.html" class="group-head">Music</a>
+    </div>
+
+    <div class="group" data-group="motion">
+      <span class="group-head">Motion</span>
+      <div class="dropdown">
+        <a href="entrances.html" data-page="entrances">Entrances &amp; exits</a>
+        <a href="mograph.html" data-page="mograph">Mograph</a>
+        <a href="beats.html" data-page="beats">Beats</a>
+        <a href="shapes.html" data-page="shapes">Shapes</a>
+        <a href="logos.html" data-page="logos">Logos</a>
+        <a href="ease-curves.html" data-page="ease-curves">Ease curves</a>
+        <a href="speedometer.html" data-page="speedometer">Speedometer</a>
+        <a href="scribbles.html" data-page="scribbles">Scribbles</a>
+      </div>
+    </div>
+
+    <div class="group current" data-group="visual">
+      <span class="group-head">Visual</span>
+      <div class="dropdown">
+        <a href="colours.html" class="current" data-page="colours">Colours</a>
+        <a href="atmosphere.html" data-page="atmosphere">Atmosphere</a>
+        <a href="overlays.html" data-page="overlays">Overlays</a>
+        <a href="glitch.html" data-page="glitch">Glitch</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="cinematography">
+      <span class="group-head">Cinematography</span>
+      <div class="dropdown">
+        <a href="camera-moves.html" data-page="camera-moves">Camera moves</a>
+        <a href="transitions.html" data-page="transitions">Transitions</a>
+        <a href="lens.html" data-page="lens">Lens</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="tools">
+      <span class="group-head">Tools &amp; assets</span>
+      <div class="dropdown">
+        <a href="common-sfx.html" data-page="common-sfx">Common SFX</a>
+        <a href="sound-fx.html" data-page="sound-fx">Sound FX (AI)</a>
+        <a href="ai-toolchain.html" data-page="ai-toolchain">AI toolchain</a>
+        <a href="templates.html" data-page="templates">Templates</a>
+        <a href="shared-library/browser.html" data-page="browser">Shared library</a>
+        <a href="shared-library/Mograph/preview.html" data-page="mograph-preview">Mograph preview</a>
+        <a href="shared-library/Greenscreen/index.html" data-page="greenscreen">Greenscreen templates</a>
+        <a href="file:///D:/AIIMS/LIGHT%20LEAKS/index.html" data-page="light-leaks-d">Light leaks (D:)</a>
+      </div>
+    </div>
+  </nav>
+</div>
+
+<header class="page-header">
+  <h1>Colours</h1>
+  <p>Named colour grades, lighting moods, duotones, and animated colour moves. Every card is a before/after — hover any tile to see the grade fade in over the raw footage. Click to open fullscreen. Cinematic looks with iconic references so you know what you're stealing.</p>
+</header>
+
+<!-- Shared SVG filter definitions -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+
+    <!-- 1. Teal & Orange — shadows cool, highlights warm, slight desat, contrast boost -->
+    <filter id="teal-orange" color-interpolation-filters="sRGB">
+      <feColorMatrix type="saturate" values="0.85"/>
+      <feComponentTransfer>
+        <feFuncR type="table" tableValues="0.04 1.00"/>
+        <feFuncG type="table" tableValues="0.32 0.70"/>
+        <feFuncB type="table" tableValues="0.62 0.08"/>
+      </feComponentTransfer>
+      <feComponentTransfer>
+        <feFuncR type="linear" slope="1.18" intercept="-0.08"/>
+        <feFuncG type="linear" slope="1.18" intercept="-0.08"/>
+        <feFuncB type="linear" slope="1.18" intercept="-0.08"/>
+      </feComponentTransfer>
+    </filter>
+
+    <!-- 3. Fincher Fade — heavy desat, greenish cast in mids and highs, crushed warm -->
+    <filter id="fincher-fade" color-interpolation-filters="sRGB">
+      <feColorMatrix type="saturate" values="0.32"/>
+      <feComponentTransfer>
+        <feFuncR type="table" tableValues="0.05 0.82"/>
+        <feFuncG type="table" tableValues="0.12 0.95"/>
+        <feFuncB type="table" tableValues="0.18 0.78"/>
+      </feComponentTransfer>
+      <feComponentTransfer>
+        <feFuncR type="linear" slope="1.08" intercept="-0.05"/>
+        <feFuncG type="linear" slope="1.08" intercept="-0.05"/>
+        <feFuncB type="linear" slope="1.08" intercept="-0.05"/>
+      </feComponentTransfer>
+    </filter>
+
+    <!-- 4. Sepia Vintage — true sepia matrix (Adobe-standard coefficients) -->
+    <filter id="sepia-vintage" color-interpolation-filters="sRGB">
+      <feColorMatrix type="matrix" values="
+        0.393 0.769 0.189 0 0
+        0.349 0.686 0.168 0 0
+        0.272 0.534 0.131 0 0
+        0     0     0     1 0"/>
+    </filter>
+
+    <!-- 5. Golden Hour — warm the reds/greens, gently suppress blues (no hue-rotate) -->
+    <filter id="golden-hour" color-interpolation-filters="sRGB">
+      <feColorMatrix type="matrix" values="
+        1.18 0.06 0    0 0.02
+        0.02 1.08 0    0 0.01
+        0    0    0.88 0 0
+        0    0    0    1 0"/>
+      <feColorMatrix type="saturate" values="1.18"/>
+    </filter>
+
+    <!-- 6. Blue Hour — suppress reds/warms, boost blues, cool everything -->
+    <filter id="blue-hour" color-interpolation-filters="sRGB">
+      <feColorMatrix type="matrix" values="
+        0.75 0    0    0 0
+        0    0.88 0    0 0.02
+        0.10 0.10 1.08 0 0.08
+        0    0    0    1 0"/>
+      <feColorMatrix type="saturate" values="0.75"/>
+    </filter>
+
+    <!-- 8. Candlelight — extreme warm shift: boost red, neutralise green, crush blue -->
+    <filter id="candlelight" color-interpolation-filters="sRGB">
+      <feColorMatrix type="matrix" values="
+        1.25 0.18 0    0 0
+        0.10 0.88 0    0 -0.02
+        0    0    0.32 0 0
+        0    0    0    1 0"/>
+    </filter>
+
+    <!-- 9. Indigo → Amber — grayscale then duotone remap -->
+    <!-- shadow  #1a1a2e = (0.102, 0.102, 0.180) -->
+    <!-- highlight #f5d27a = (0.961, 0.824, 0.478) -->
+    <filter id="indigo-amber" color-interpolation-filters="sRGB">
+      <feColorMatrix type="matrix" values="
+        0.2126 0.7152 0.0722 0 0
+        0.2126 0.7152 0.0722 0 0
+        0.2126 0.7152 0.0722 0 0
+        0      0      0      1 0"/>
+      <feComponentTransfer>
+        <feFuncR type="table" tableValues="0.102 0.961"/>
+        <feFuncG type="table" tableValues="0.102 0.824"/>
+        <feFuncB type="table" tableValues="0.180 0.478"/>
+      </feComponentTransfer>
+    </filter>
+
+    <!-- 10. Risograph Plum — duotone (halftone dots added via CSS overlay) -->
+    <!-- shadow  #3d1c45 = (0.239, 0.110, 0.271) -->
+    <!-- highlight #ffe8a8 = (1.000, 0.910, 0.659) -->
+    <filter id="risograph-plum" color-interpolation-filters="sRGB">
+      <feColorMatrix type="matrix" values="
+        0.2126 0.7152 0.0722 0 0
+        0.2126 0.7152 0.0722 0 0
+        0.2126 0.7152 0.0722 0 0
+        0      0      0      1 0"/>
+      <feComponentTransfer>
+        <feFuncR type="table" tableValues="0.239 1.000"/>
+        <feFuncG type="table" tableValues="0.110 0.910"/>
+        <feFuncB type="table" tableValues="0.271 0.659"/>
+      </feComponentTransfer>
+    </filter>
+
+  </defs>
+</svg>
+
+<section>
+  <h2>Cinematic Looks</h2>
+  <p class="intro">Iconic named grades from film history. Hover to see the grade apply. These aren't filters — they're decisions a colourist made to serve a story.</p>
+  <div class="grid">
+
+    <div class="demo fx-colour fx-teal-orange" id="teal-orange">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="base" src="images/teal-orange-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <video class="graded" src="images/teal-orange-clip-v1.mp4" autoplay muted loop playsinline></video>
+      </div>
+      <h3>Teal &amp; Orange</h3>
+      <p class="caption">The Hollywood blockbuster grade. Shadows pushed to teal, highlights to warm orange — skin tones pop against cool backgrounds. AE: Lumetri → Colour Wheels, or Curves → R/G/B. Ref: <em>Mad Max: Fury Road</em>.</p>
+    </div>
+
+    <div class="demo fx-colour fx-bleach-bypass" id="bleach-bypass">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="base" src="images/bleach-bypass-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <video class="graded" src="images/bleach-bypass-clip-v1.mp4" autoplay muted loop playsinline></video>
+      </div>
+      <h3>Bleach Bypass</h3>
+      <p class="caption">Desat -70%, contrast +75%. Crushed blacks, blown highlights, metallic feel — like the silver was left in the emulsion. AE: Lumetri → Saturation low, Contrast high. Ref: <em>Saving Private Ryan</em>, <em>Seven</em>.</p>
+    </div>
+
+    <div class="demo fx-colour fx-fincher-fade" id="fincher-fade">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="base" src="images/portrait-moody-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <video class="graded" src="images/portrait-moody-clip-v1.mp4" autoplay muted loop playsinline></video>
+      </div>
+      <h3>Fincher Fade</h3>
+      <p class="caption">Psychological desat -65% with a green-teal push into mids and highs. Cold, clinical, slightly unwell. AE: Lumetri Curves + Selective Colour → Greens. Ref: <em>Zodiac</em>, <em>The Social Network</em>, <em>Mindhunter</em>.</p>
+    </div>
+
+    <div class="demo fx-colour fx-sepia-vintage" id="sepia-vintage">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="base" src="images/sepia-vintage-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <video class="graded" src="images/sepia-vintage-clip-v1.mp4" autoplay muted loop playsinline></video>
+      </div>
+      <h3>Sepia Vintage</h3>
+      <p class="caption">Proper sepia matrix (0.393/0.349/0.272 — the Adobe standard) — not the flat CSS <code>sepia()</code>. Aged photo warmth for flashbacks and memory beats. AE: Lumetri → Creative → Camel, or Tint with #704214.</p>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>Lighting Moods</h2>
+  <p class="intro">Grades that recreate the feeling of specific lighting conditions. Not film stocks — the colour of the light itself. Useful when the footage you shot doesn't match the scene you're trying to build.</p>
+  <div class="grid">
+
+    <div class="demo fx-colour fx-golden-hour" id="golden-hour">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="base" src="images/desert-road-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <video class="graded" src="images/desert-road-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <div class="tint"></div>
+      </div>
+      <h3>Golden Hour</h3>
+      <p class="caption">Warm romantic sunset, 2500–3500K. Reds and greens boosted, blues dropped -12%, saturation +18%, warm highlight glow on a soft-light blend. AE: Lumetri Temperature +25, Tint +5, radial warm wash. Ref: <em>The Royal Tenenbaums</em>.</p>
+    </div>
+
+    <div class="demo fx-colour fx-blue-hour" id="blue-hour">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="base" src="images/blue-hour-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <video class="graded" src="images/blue-hour-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <div class="tint"></div>
+      </div>
+      <h3>Blue Hour</h3>
+      <p class="caption">Post-sunset cool cast, 9000–12000K. Warms suppressed, blues boosted, light gradient overlay pulling the top into dusk. AE: Lumetri Temperature -40, Tint -10. Ref: twilight establishing shots, Malick dawns.</p>
+    </div>
+
+    <div class="demo fx-colour fx-neon-midnight" id="neon-midnight">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="base" src="images/neon-alley-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <video class="graded" src="images/neon-alley-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <div class="tint"></div>
+      </div>
+      <h3>Neon Midnight</h3>
+      <p class="caption">Saturation +75%, contrast +40%, brightness -15%, plus cyan + magenta radial bleed on a screen blend. Cyberpunk city at night. AE: Lumetri HSL → Neons + bloom pass. Ref: <em>Blade Runner 2049</em>, <em>Drive</em>.</p>
+    </div>
+
+    <div class="demo fx-colour fx-candlelight" id="candlelight">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="base" src="images/candlelight-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <video class="graded" src="images/candlelight-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <div class="tint"></div>
+      </div>
+      <h3>Candlelight</h3>
+      <p class="caption">Extreme warm shift (1500–1900K — one of the warmest natural sources). Reds boosted, greens neutralised, blues crushed, warm vignette pulling the edges into darkness. AE: Lumetri Temperature -100 + dark warm vignette. Ref: <em>Barry Lyndon</em>.</p>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>Gradient Maps</h2>
+  <p class="intro">True luminance-to-colour remapping — every pixel's brightness picks a colour off a two-stop gradient. Editorial and poster design, not photography. Each card uses real <code>feColorMatrix</code> + <code>feComponentTransfer</code>, the same stack Spotify uses for its duotone covers.</p>
+  <div class="grid">
+
+    <div class="demo fx-colour fx-indigo-amber" id="indigo-amber">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="base" src="images/indigo-amber-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <video class="graded" src="images/indigo-amber-clip-v1.mp4" autoplay muted loop playsinline></video>
+      </div>
+      <h3>Indigo → Amber</h3>
+      <p class="caption">Two-stop duotone. Shadows become indigo <code>#1a1a2e</code>, highlights become amber <code>#f5d27a</code>. Elegant, editorial, timeless. AE: Tint with two colours, or Gradient Map. Pairs with serif type.</p>
+    </div>
+
+    <div class="demo fx-colour fx-risograph" id="risograph-plum">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="base" src="images/risograph-plum-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <video class="graded" src="images/risograph-plum-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <div class="tint"></div>
+      </div>
+      <h3>Risograph Plum</h3>
+      <p class="caption">Duotone remap (plum <code>#3d1c45</code> → cream <code>#ffe8a8</code>) plus a printed halftone dot pattern on a multiply blend. Zine and riso-print aesthetic. AE: Tint + Omino Halftone, or CC Ball Action at tiny size.</p>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>Animated Colour</h2>
+  <p class="intro">Dynamic colour moves — the grade itself animates. No hover needed, these auto-loop. Use sparingly: animated colour is hypnotic but easy to overdo.</p>
+  <div class="grid">
+
+    <div class="demo fx-hue-drift" id="hue-drift">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="only" src="images/neon-alley-clip-v1.mp4" autoplay muted loop playsinline></video>
+      </div>
+      <h3>Hue Drift</h3>
+      <p class="caption">Slow 360° hue rotation over 12 seconds. Trippy, meditative, dream-sequence territory. AE: Hue/Saturation → Master Hue with a linear expression, or Colorama. Works on any colourful footage.</p>
+    </div>
+
+    <div class="demo fx-sat-punch" id="sat-punch">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="only" src="images/light-leak-clip-v1.mp4" autoplay muted loop playsinline></video>
+      </div>
+      <h3>Saturation Punch</h3>
+      <p class="caption">Rhythmic saturation pulse at ~100bpm — normal → 2.0× → normal every 600ms. Beat-sync colour energy. AE: Lumetri Saturation keyframed to audio peaks, or Amplitude to Slider expression.</p>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>LUT recipes</h2>
+  <p class="intro">Named grading recipes you can pull off the shelf for a job. Each card is a CSS-filter approximation of a real LUT — close enough for in-browser preview and direction discussions; for production, take the parameter set as a starting point in Lumetri / Resolve. Hover to apply the grade.</p>
+  <div class="grid">
+
+    <div class="demo fx-colour fx-nordic-cool" id="nordic-cool">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="base" src="images/desert-road-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <video class="graded" src="images/desert-road-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <div class="tint"></div>
+      </div>
+      <h3>Nordic Cool</h3>
+      <p class="caption">Desaturated low-temp grade with a cool blue cast and lifted shadows. Reads as Nordic / Scandi / restrained. AE: Lumetri Saturation -38, Temperature -25, Lift +10. Filter: <code>saturate(0.62) hue-rotate(-12deg)</code>.</p>
+    </div>
+
+    <div class="demo fx-colour fx-faded-film" id="faded-film">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="base" src="images/desert-road-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <video class="graded" src="images/desert-road-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <div class="tint"></div>
+      </div>
+      <h3>Faded Film</h3>
+      <p class="caption">Lifted blacks, bleached saturation, slight paper warmth. The "shot on expired Kodak" look without leaning fully sepia. AE: Lumetri Lift +12, Saturation -22, Contrast -18. Filter: <code>saturate(0.78) contrast(0.82) sepia(0.18) brightness(1.06)</code>.</p>
+    </div>
+
+    <div class="demo fx-colour fx-warm-doc" id="warm-document">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="base" src="images/portrait-moody-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <video class="graded" src="images/portrait-moody-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <div class="tint"></div>
+      </div>
+      <h3>Warm Document</h3>
+      <p class="caption">Neutral skin tones with warm shadows — the "interview the founder" corporate documentary grade. Subtle, professional, never showy. AE: Lumetri Temperature +8, Saturation -5, Curves slight S. Filter: <code>saturate(0.95) sepia(0.10) contrast(1.06)</code>.</p>
+    </div>
+
+    <div class="demo fx-colour fx-vintage-film" id="vintage-film">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="base" src="images/desert-road-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <video class="graded" src="images/desert-road-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <div class="tint"></div>
+      </div>
+      <h3>Vintage Film Stock</h3>
+      <p class="caption">Kodak Vision-style chromatic curves — slightly elevated saturation, sepia-bias mids, vignetted edges. Memory / nostalgia / heritage brand. AE: Lumetri Creative → Camel + warm vignette. Filter: <code>saturate(1.18) sepia(0.22) hue-rotate(-8deg) contrast(1.12)</code>.</p>
+    </div>
+
+    <div class="demo fx-colour fx-moody-cinematic" id="moody-cinematic">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="base" src="images/portrait-moody-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <video class="graded" src="images/portrait-moody-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <div class="tint"></div>
+      </div>
+      <h3>Moody Cinematic</h3>
+      <p class="caption">Low-key, crushed blacks, selective saturation. Big-budget brooding — drama, tension, prestige. AE: Lumetri Saturation -45, Brightness -18, Contrast +38. Filter: <code>saturate(0.55) brightness(0.82) contrast(1.38)</code>.</p>
+    </div>
+
+    <div class="demo fx-colour fx-urban-hc" id="urban-high-contrast">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="base" src="images/neon-alley-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <video class="graded" src="images/neon-alley-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <div class="tint"></div>
+      </div>
+      <h3>Urban High-Contrast</h3>
+      <p class="caption">Punchy mid-tones, slight cyan in shadows, full saturation. Streetwear, sport, music-video energy. AE: Lumetri Saturation +30, Contrast +42, Curves R/G boosted in shadows. Filter: <code>saturate(1.30) contrast(1.42) brightness(1.04)</code>.</p>
+    </div>
+
+    <div class="demo fx-colour fx-sun-kissed" id="sun-kissed">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="base" src="images/desert-road-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <video class="graded" src="images/desert-road-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <div class="tint"></div>
+      </div>
+      <h3>Sun-Kissed</h3>
+      <p class="caption">Warm highlights + lifted shadows + radial sun glow. Travel, summer, wellness, lifestyle. AE: Lumetri Highlights warm +20, Whites +12, radial warm wash. Filter: <code>saturate(1.22) brightness(1.10) sepia(0.10)</code>.</p>
+    </div>
+
+    <div class="demo fx-colour fx-drama" id="high-contrast-drama">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="base" src="images/portrait-moody-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <video class="graded" src="images/portrait-moody-clip-v1.mp4" autoplay muted loop playsinline></video>
+        <div class="tint"></div>
+      </div>
+      <h3>High-Contrast Drama</h3>
+      <p class="caption">Heavy S-curve, deep saturation, slight green-shadow shift. Closer to a music video or fashion editorial than a doco. AE: Lumetri Curves heavy S, Selective Colour shadows green +8. Filter: <code>saturate(0.85) contrast(1.65) brightness(0.92) hue-rotate(3deg)</code>.</p>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>Photo treatments</h2>
+  <p class="intro">Texture and finish effects that sit in colour territory but aren't grades. Halftone turns any image into a printed dot-grid reproduction. Orton glow is the wedding-film dreamy bloom — blurred bright copy layered with screen blend.</p>
+  <div class="grid">
+
+    <div class="demo fx-halftone" id="halftone">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="src" src="images/portrait-moody-clip-small.mp4" autoplay loop muted playsinline></video>
+        <canvas class="processed"></canvas>
+      </div>
+      <h3>Halftone</h3>
+      <p class="caption">Real halftone reproduction — dot diameter modulated by local luminance, paper background. Live-driven from the video so the dots redistribute every frame. The newspaper / zine / Saul Bass look. AE: Omino Halftone or CC Ball Action at small block size. Cell size tunes coarseness.</p>
+    </div>
+
+    <div class="demo fx-edge-sobel" id="edge-sobel">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="src" src="images/neon-alley-clip-small.mp4" autoplay loop muted playsinline></video>
+        <canvas class="processed"></canvas>
+      </div>
+      <h3>Edge detection (Sobel)</h3>
+      <p class="caption">3×3 Sobel kernel on the luminance channel, applied per video frame. Every gradient becomes a line, every flat patch goes black. Editorial / TIWH stylisation pass; great as a transition state on the way to a graded shot. AE: Find Edges or CC Glass with low displacement; canvas here is the same maths.</p>
+    </div>
+
+    <div class="demo fx-bayer-dither" id="bayer-dither">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="src" src="images/portrait-moody-clip-small.mp4" autoplay loop muted playsinline></video>
+        <canvas class="processed"></canvas>
+      </div>
+      <h3>Bayer dither</h3>
+      <p class="caption">Ordered 8×8 Bayer matrix quantises each pixel to a 1-bit ink/paper palette. The classic newspaper-print and zine reproduction look. Visible matrix grain is the giveaway. Pairs with Risograph Plum.</p>
+    </div>
+
+    <div class="demo fx-fs-dither" id="fs-dither">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <video class="src" src="images/portrait-moody-clip-small.mp4" autoplay loop muted playsinline></video>
+        <canvas class="processed"></canvas>
+      </div>
+      <h3>Floyd-Steinberg dither</h3>
+      <p class="caption">Error-diffusion dither — quantisation error gets distributed to neighbouring pixels in a 4-tap kernel. More organic than Bayer; reads photographic at small palette sizes. Same 1-bit ink/paper palette here.</p>
+    </div>
+
+    <div class="demo fx-orton" id="orton-glow">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="orton-plate"></div>
+        <div class="orton-bloom"></div>
+      </div>
+      <h3>Orton glow</h3>
+      <p class="caption">Blurred bright copy layered over the footage with screen blend. Dreamy, romantic — the wedding-film bloom. AE: duplicate, blur heavily, brighten, screen blend at ~75%.</p>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  Colour is the first thing the audience feels and the last thing they can name. Pick one look per sequence and commit — a scene that can't decide between Teal &amp; Orange and Fincher Fade reads as neither. Every grade here has an iconic film behind it; if you can't name the reference, you're not stealing hard enough.
+</footer>
+
+<script>
+  function retrigger(el) {
+    el.classList.remove('playing');
+    void el.offsetWidth;
+    el.classList.add('playing');
+  }
+
+  function parseTime(s) {
+    s = (s || '').trim();
+    if (!s || s === '0s') return 0;
+    if (s.endsWith('ms')) return parseFloat(s);
+    if (s.endsWith('s'))  return parseFloat(s) * 1000;
+    return 0;
+  }
+  function maxAnimationMs(root) {
+    let max = 0;
+    const nodes = [root, ...root.querySelectorAll('*')];
+    nodes.forEach(el => {
+      const cs = getComputedStyle(el);
+      if (!cs.animationName || cs.animationName === 'none') return;
+      const names = cs.animationName.split(',');
+      const durs  = cs.animationDuration.split(',');
+      const dels  = cs.animationDelay.split(',');
+      for (let i = 0; i < names.length; i++) {
+        if (names[i].trim() === 'none') continue;
+        const total = parseTime(durs[i] || durs[0]) + parseTime(dels[i] || dels[0]);
+        if (total > max) max = total;
+      }
+    });
+    return max;
+  }
+
+  const cycleCache = new WeakMap();
+  function cycleFor(demo) {
+    if (cycleCache.has(demo)) return cycleCache.get(demo);
+    const hadPlaying = demo.classList.contains('playing');
+    if (!hadPlaying) demo.classList.add('playing');
+    void demo.offsetWidth;
+    const ms = Math.max(1600, maxAnimationMs(demo) + 400);
+    if (!hadPlaying) demo.classList.remove('playing');
+    cycleCache.set(demo, ms);
+    return ms;
+  }
+
+  const hoverLoops = new WeakMap();
+  function startHoverLoop(demo) {
+    stopHoverLoop(demo);
+    retrigger(demo);
+    const cycle = cycleFor(demo);
+    const id = setInterval(() => retrigger(demo), cycle);
+    hoverLoops.set(demo, id);
+  }
+  function stopHoverLoop(demo) {
+    const id = hoverLoops.get(demo);
+    if (id) { clearInterval(id); hoverLoops.delete(demo); }
+    // Remove .playing so the before/after reveal fades back to the
+    // ungraded base when the mouse leaves (unless we're in fullscreen).
+    if (document.fullscreenElement !== demo) {
+      demo.classList.remove('playing');
+    }
+  }
+
+  document.querySelectorAll('.demo').forEach(demo => {
+    demo.addEventListener('mouseenter', () => {
+      if (document.fullscreenElement) return;
+      startHoverLoop(demo);
+    });
+    demo.addEventListener('mouseleave', () => stopHoverLoop(demo));
+
+    demo.addEventListener('click', () => {
+      if (document.fullscreenElement === demo) {
+        retrigger(demo);
+        return;
+      }
+      stopHoverLoop(demo);
+      if (document.fullscreenElement) document.exitFullscreen();
+      const after = () => retrigger(demo);
+      const p = demo.requestFullscreen();
+      if (p && p.then) p.then(after).catch(after); else after();
+    });
+  });
+
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) {
+      document.querySelectorAll('.demo:hover').forEach(startHoverLoop);
+    }
+  });
+
+  // Intro pass on load — stagger-reveal the grade on each tile, then fade
+  // it back out so the before/after reveal still works on subsequent hover.
+  // Animated tiles (auto-loop) skip this — they don't use .playing for reveal.
+  window.addEventListener('load', () => {
+    document.querySelectorAll('.demo').forEach((demo, i) => {
+      const isAutoLoop = demo.classList.contains('fx-hue-drift') ||
+                         demo.classList.contains('fx-sat-punch');
+      if (isAutoLoop) return;
+      const startAt = 600 + i * 260;
+      setTimeout(() => {
+        if (demo.matches(':hover')) return;
+        demo.classList.add('playing');
+        setTimeout(() => {
+          if (demo.matches(':hover')) return;
+          demo.classList.remove('playing');
+        }, 1400);
+      }, startAt);
+    });
+  });
+
+  // Canvas-based image-processing cards (halftone + Sobel edge detection)
+  // Driven from video <src> via processVideo's RAF loop. The CSS opacity on
+  // the .processed canvas handles the cross-fade between source video and
+  // processed frame.
+  function initImageProcessing() {
+    if (!window.CanvasFX) return;
+
+    function setupVideoCard(selector, kind, opts) {
+      const demo = document.querySelector(selector);
+      if (!demo) return;
+      const canvas = demo.querySelector('canvas.processed');
+      const video = demo.querySelector('video.src');
+      if (!canvas || !video) return;
+      // Re-route the video src through the data-URI plate registry to avoid
+      // file:// canvas-taint (drawImage on a tainted video frame breaks
+      // getImageData just like with images).
+      const original = video.getAttribute('src');
+      const resolved = CanvasFX.resolveSrc(original);
+      if (resolved !== original) video.src = resolved;
+      // Kick off the RAF loop. processVideo returns a {stop} handle if we ever
+      // need it; ignored here — the loop pauses itself when off-screen.
+      CanvasFX.processVideo(canvas, video, kind, opts);
+    }
+
+    setupVideoCard('.fx-halftone', 'halftone', {
+      cellSize: 7,
+      dotColour: '#101010',
+      bgColour: '#f1ead8',
+      maxRadiusFactor: 0.6,
+      pattern: 'circle',
+      angle: Math.PI / 4,
+    });
+
+    setupVideoCard('.fx-edge-sobel', 'sobel', {
+      threshold: 28,
+      ink: [255, 255, 255],
+      bg: [10, 10, 10],
+    });
+
+    setupVideoCard('.fx-bayer-dither', 'bayer', {
+      matrixSize: 8,
+      palette: '1bit',
+    });
+
+    setupVideoCard('.fx-fs-dither', 'fs-dither', {
+      palette: '1bit',
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initImageProcessing);
+  } else {
+    initImageProcessing();
+  }
+</script>
+  </body>
+</html>

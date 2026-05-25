@@ -1,0 +1,2858 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Transitions · Callum's Effects Library</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --card: #141414;
+    --border: #262626;
+    --border-hover: #3a3a3a;
+    --text: #ececec;
+    --muted: #888;
+    --accent: #ff7a1a;
+    --display: 'Impact', 'Haettenschweiler', 'Arial Narrow Bold', sans-serif;
+    --mono: 'SF Mono', Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: 32px 40px 80px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .topnav {
+    display: flex; align-items: flex-end; gap: 24px;
+    padding-bottom: 20px; border-bottom: 1px solid var(--border);
+    margin-bottom: 28px; flex-wrap: wrap;
+  }
+  .topnav .brand {
+    font-family: var(--display); font-size: 18px;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text); text-decoration: none; white-space: nowrap;
+    display: inline-block; line-height: 1.1;
+  }
+  .topnav .brand .brand-top {
+    display: block; font-size: 12px; letter-spacing: 1.5px;
+    color: var(--accent); margin-bottom: 2px;
+  }
+  .topnav .brand:hover { color: var(--accent); }
+  .topnav nav { display: flex; gap: 20px; font-size: 13px; letter-spacing: 0.3px; text-transform: uppercase; flex-wrap: wrap; }
+  .topnav nav a { color: var(--muted); text-decoration: none; transition: color 120ms; }
+  .topnav nav a:hover { color: var(--text); }
+  .topnav nav a.current { color: var(--accent); }
+
+  header.page-header { padding-bottom: 24px; margin-bottom: 40px; }
+  header.page-header h1 {
+    font-family: var(--display); font-size: 44px; margin: 0 0 8px;
+    letter-spacing: -0.5px; text-transform: uppercase;
+  }
+  header.page-header p { margin: 0; color: var(--muted); max-width: 780px; }
+
+  section.group { margin-bottom: 56px; }
+  section.group h2 {
+    font-family: var(--display); font-size: 14px;
+    letter-spacing: 3px; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 16px; font-weight: normal;
+  }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+
+  .demo {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    transition: border-color 150ms, transform 150ms;
+  }
+  .demo:hover { border-color: var(--border-hover); transform: translateY(-2px); }
+  .demo .stage {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    overflow: hidden;
+    user-select: none; -webkit-user-select: none;
+  }
+  .demo .meta { padding: 12px 16px 14px; }
+  .demo .meta .title {
+    font-family: var(--display); font-size: 15px;
+    letter-spacing: 1.2px; text-transform: uppercase; margin: 0 0 3px;
+  }
+  .demo .meta .desc { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+  /* Shared shot backgrounds */
+  .shot { position: absolute; inset: 0; display: grid; place-items: center; }
+  .shot .label {
+    font-family: var(--display); font-size: 42px; color: #fff;
+    letter-spacing: 2px; text-transform: uppercase;
+    text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+  }
+  .shot.warm   { background: linear-gradient(135deg, #ff6a00, #ee0979); }
+  .shot.teal   { background: linear-gradient(135deg, #0f3443, #34e89e); }
+  .shot.cool   { background: linear-gradient(135deg, #2b5876, #4e4376); }
+  .shot.amber  { background: linear-gradient(135deg, #f7971e, #ffd200); color: #222; }
+  .shot.amber .label { color: #1a1a1a; text-shadow: 0 2px 14px rgba(255,210,0,0.3); }
+  .shot.pink   { background: linear-gradient(135deg, #ff0844, #ffb199); }
+  .shot.mono   { background: #111; border: 1px solid #222; }
+  .shot.ink    { background: linear-gradient(135deg, #0f0f0f, #1a1a1a); }
+
+  /* Image-based shots — hide text labels, cover the stage */
+  .shot.img            { background-size: cover; background-position: center; }
+  .shot.img .label     { display: none; }
+  .shot.img-alley      { background-image: url('images/neon-alley.png'); }
+  .shot.img-desert     { background-image: url('images/desert-road.png'); }
+  .shot.img-portrait   { background-image: url('images/portrait-moody.png'); }
+
+  /* Video-based shots — looping 5s clips animated from the source stills.
+     The <video> fills the .shot container; .shot itself is already
+     position: absolute; inset: 0 via the base rule above. */
+  .shot.vid            { overflow: hidden; background: #000; }
+  .shot.vid video      {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .shot.vid .label     { display: none; }
+
+  /* ============================================ */
+  /* All transitions loop A → B → A infinitely    */
+  /* Common timing pattern:                        */
+  /*   0–15%   hold A                              */
+  /*  15–35%   transition A → B                    */
+  /*  35–65%   hold B                              */
+  /*  65–85%   transition B → A                    */
+  /*  85–100%  hold A                              */
+  /* ============================================ */
+
+  /* WHIP PAN
+     Horizontal slide with SVG directional motion blur (x-only
+     stdDeviation via feGaussianBlur). Real motion blur, not
+     isotropic CSS blur — at peak the content smears to pure
+     horizontal streaks, so the seam between panels disappears. */
+  .fx-whip .stage-inner {
+    position: absolute; inset: 0; width: 200%;
+    display: flex;
+    filter: url(#whip-blur);
+    animation: whip-move 3.8s cubic-bezier(0.7, 0, 0.2, 1) infinite;
+  }
+  .fx-whip .stage-inner .shot { position: relative; flex: 1; }
+  @keyframes whip-move {
+    0%, 18%  { transform: translateX(0); }
+    35%      { transform: translateX(-50%); }
+    65%      { transform: translateX(-50%); }
+    82%      { transform: translateX(0); }
+    100%     { transform: translateX(0); }
+  }
+
+  /* LUMA WIPE */
+  .fx-luma .shot-b {
+    -webkit-mask-image: linear-gradient(110deg, #000 40%, transparent 52%);
+            mask-image: linear-gradient(110deg, #000 40%, transparent 52%);
+    -webkit-mask-size: 250% 100%;
+            mask-size: 250% 100%;
+    animation: luma-sweep 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes luma-sweep {
+    0%, 15%   { -webkit-mask-position: 100% 0; mask-position: 100% 0; }
+    35%       { -webkit-mask-position: 0% 0;   mask-position: 0% 0; }
+    65%       { -webkit-mask-position: 0% 0;   mask-position: 0% 0; }
+    85%, 100% { -webkit-mask-position: 100% 0; mask-position: 100% 0; }
+  }
+
+  /* IRIS WIPE */
+  .fx-iris .shot-b {
+    clip-path: circle(0% at 50% 50%);
+    animation: iris-cycle 3.8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+  @keyframes iris-cycle {
+    0%, 15%   { clip-path: circle(0% at 50% 50%); }
+    35%       { clip-path: circle(75% at 50% 50%); }
+    65%       { clip-path: circle(75% at 50% 50%); }
+    85%, 100% { clip-path: circle(0% at 50% 50%); }
+  }
+
+  /* SLICE REVEAL */
+  .fx-slice .shot-b {
+    position: absolute; inset: 0;
+    background: transparent;
+  }
+  .fx-slice .shot-b .label { display: none; }
+  .fx-slice .slice-band {
+    position: absolute;
+    left: 0; right: 0;
+    height: 16.67%;
+    transform: translateX(-105%);
+    animation: slice-cycle 3.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+  }
+  /* Each band shows a 1/6 horizontal slice of the full shot-b image.
+     background-size 100% 600% stretches the image to 6x the band height,
+     background-position-y scrolls through the stretched image at 20% steps. */
+  .fx-slice .slice-band {
+    background-image: url('images/desert-road.png');
+    background-size: 100% 600%;
+    background-repeat: no-repeat;
+  }
+  .fx-slice .slice-band:nth-child(1) { top:    0%;   background-position: 0   0%; animation-delay: 0.00s; }
+  .fx-slice .slice-band:nth-child(2) { top: 16.67%;  background-position: 0  20%; animation-delay: 0.04s; }
+  .fx-slice .slice-band:nth-child(3) { top: 33.34%;  background-position: 0  40%; animation-delay: 0.08s; }
+  .fx-slice .slice-band:nth-child(4) { top: 50.01%;  background-position: 0  60%; animation-delay: 0.12s; }
+  .fx-slice .slice-band:nth-child(5) { top: 66.68%;  background-position: 0  80%; animation-delay: 0.16s; }
+  .fx-slice .slice-band:nth-child(6) { top: 83.35%;  background-position: 0 100%; animation-delay: 0.20s; }
+  @keyframes slice-cycle {
+    0%, 12%   { transform: translateX(-105%); }
+    33%       { transform: translateX(0); }
+    62%       { transform: translateX(0); }
+    83%, 100% { transform: translateX(-105%); }
+  }
+
+  /* DIP TO WHITE */
+  .fx-white .overlay {
+    position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none;
+    animation: dip-cycle 3.8s ease-in-out infinite;
+  }
+  .fx-white .shot-b {
+    opacity: 0;
+    animation: reveal-cycle 3.8s infinite;
+  }
+
+  /* DIP TO BLACK */
+  .fx-black .overlay {
+    position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none;
+    animation: dip-cycle 3.8s ease-in-out infinite;
+  }
+  .fx-black .shot-b {
+    opacity: 0;
+    animation: reveal-cycle 3.8s infinite;
+  }
+
+  @keyframes dip-cycle {
+    0%   { opacity: 0; }
+    22%  { opacity: 1; }
+    30%  { opacity: 0; }
+    70%  { opacity: 0; }
+    78%  { opacity: 1; }
+    86%  { opacity: 0; }
+    100% { opacity: 0; }
+  }
+  @keyframes reveal-cycle {
+    0%, 21%   { opacity: 0; }
+    22%, 77%  { opacity: 1; }
+    78%, 100% { opacity: 0; }
+  }
+
+  /* LIGHT LEAK
+     Real light-leak footage (Kling v2-6-pro clip) overlaid with
+     screen blend. Video loops continuously; only the opacity
+     animates in/out during the transition window, so the leak
+     bathes the stage at the cut and fades away for the hold. */
+  .fx-leak .overlay {
+    position: absolute; inset: 0; pointer-events: none;
+    mix-blend-mode: screen;
+    opacity: 0;
+    z-index: 3;
+    animation: leak-cycle 3.8s ease-in-out infinite;
+  }
+  .fx-leak .overlay video {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .fx-leak .shot-b {
+    opacity: 0;
+    animation: reveal-cycle-leak 3.8s infinite;
+  }
+  @keyframes leak-cycle {
+    0%, 8%    { opacity: 0; }
+    18%       { opacity: 1; }
+    30%       { opacity: 1; }
+    42%, 58%  { opacity: 0; }
+    68%       { opacity: 1; }
+    80%       { opacity: 1; }
+    92%, 100% { opacity: 0; }
+  }
+  @keyframes reveal-cycle-leak {
+    0%, 14%   { opacity: 0; }
+    15%, 64%  { opacity: 1; }
+    65%, 100% { opacity: 0; }
+  }
+
+  /* MORPH CUT */
+  .fx-morph .shot-a {
+    z-index: 2;
+    animation: morph-a 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .fx-morph .shot-b {
+    animation: morph-b 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes morph-a {
+    0%, 15%   { opacity: 1; transform: scale(1); filter: blur(0); }
+    35%       { opacity: 0; transform: scale(1.06); filter: blur(4px); }
+    65%       { opacity: 0; transform: scale(1.06); filter: blur(4px); }
+    85%, 100% { opacity: 1; transform: scale(1); filter: blur(0); }
+  }
+  @keyframes morph-b {
+    0%, 15%   { opacity: 0; transform: scale(0.96); filter: blur(4px); }
+    35%       { opacity: 1; transform: scale(1); filter: blur(0); }
+    65%       { opacity: 1; transform: scale(1); filter: blur(0); }
+    85%, 100% { opacity: 0; transform: scale(0.96); filter: blur(4px); }
+  }
+
+  /* LIQUID WIPE */
+  .fx-liquid svg.defs { position: absolute; width: 0; height: 0; }
+  .fx-liquid .shot-b {
+    filter: url(#liquid-filter);
+    clip-path: circle(0% at 50% 50%);
+    animation: liquid-cycle 4.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  }
+  @keyframes liquid-cycle {
+    0%, 15%   { clip-path: circle(0% at 50% 50%); }
+    40%       { clip-path: circle(80% at 50% 50%); }
+    60%       { clip-path: circle(80% at 50% 50%); }
+    85%, 100% { clip-path: circle(0% at 50% 50%); }
+  }
+
+  /* DIRECTIONAL SLIDE */
+  .fx-slide .shot-a {
+    z-index: 2;
+    animation: slide-a 3.8s cubic-bezier(0.7, 0, 0.2, 1) infinite;
+  }
+  .fx-slide .shot-b {
+    animation: slide-b 3.8s cubic-bezier(0.7, 0, 0.2, 1) infinite;
+  }
+  @keyframes slide-a {
+    0%, 15%   { transform: translateX(0); }
+    35%       { transform: translateX(-102%); }
+    65%       { transform: translateX(-102%); }
+    85%, 100% { transform: translateX(0); }
+  }
+  @keyframes slide-b {
+    0%, 15%   { transform: translateX(102%); }
+    35%       { transform: translateX(0); }
+    65%       { transform: translateX(0); }
+    85%, 100% { transform: translateX(102%); }
+  }
+
+  /* ZOOM PUNCH */
+  .fx-zoom .shot-a {
+    z-index: 2;
+    animation: zoom-a 3.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  }
+  .fx-zoom .shot-b {
+    animation: zoom-b 3.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  }
+  @keyframes zoom-a {
+    0%, 15%   { transform: scale(1); opacity: 1; filter: blur(0); }
+    35%       { transform: scale(1.8); opacity: 0; filter: blur(8px); }
+    65%       { transform: scale(1.8); opacity: 0; filter: blur(8px); }
+    85%, 100% { transform: scale(1); opacity: 1; filter: blur(0); }
+  }
+  @keyframes zoom-b {
+    0%, 15%   { transform: scale(0.6); opacity: 0; filter: blur(8px); }
+    35%       { transform: scale(1); opacity: 1; filter: blur(0); }
+    65%       { transform: scale(1); opacity: 1; filter: blur(0); }
+    85%, 100% { transform: scale(0.6); opacity: 0; filter: blur(8px); }
+  }
+
+  /* WARP-SPEED ZOOM
+     Heavier than zoom-punch — radial-stretch blur during the
+     transition window plus a brighter scale ramp. Sells the
+     "punching through hyperspace" feel rather than a beat hit. */
+  .fx-warp .shot-a {
+    z-index: 2;
+    animation: warp-a 4.2s cubic-bezier(0.7, 0, 0.3, 1) infinite;
+    transform-origin: center center;
+  }
+  .fx-warp .shot-b {
+    animation: warp-b 4.2s cubic-bezier(0.7, 0, 0.3, 1) infinite;
+    transform-origin: center center;
+  }
+  .fx-warp .streak {
+    position: absolute; inset: -20%;
+    background: repeating-conic-gradient(
+      from 0deg at 50% 50%,
+      rgba(255, 255, 255, 0.95) 0deg 0.35deg,
+      transparent 0.35deg 15deg
+    );
+    -webkit-mask: radial-gradient(circle at 50% 50%,
+      transparent 6%, #000 22%, #000 60%, transparent 92%);
+            mask: radial-gradient(circle at 50% 50%,
+      transparent 6%, #000 22%, #000 60%, transparent 92%);
+    mix-blend-mode: screen;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 3;
+    animation: warp-streak 4.2s cubic-bezier(0.7, 0, 0.3, 1) infinite;
+  }
+  .fx-warp .flash {
+    position: absolute; inset: 0; background: #fff;
+    opacity: 0; pointer-events: none; z-index: 4;
+    animation: warp-flash 4.2s linear infinite;
+  }
+  @keyframes warp-a {
+    0%, 12%   { transform: scale(1); opacity: 1; filter: blur(0) brightness(1); }
+    28%       { transform: scale(2.6); opacity: 0; filter: blur(18px) brightness(1.8); }
+    32%, 62%  { transform: scale(2.6); opacity: 0; filter: blur(18px) brightness(1.8); }
+    78%       { transform: scale(1); opacity: 1; filter: blur(0) brightness(1); }
+    100%      { transform: scale(1); opacity: 1; filter: blur(0) brightness(1); }
+  }
+  @keyframes warp-b {
+    0%, 12%   { transform: scale(0.4); opacity: 0; filter: blur(18px) brightness(1.8); }
+    28%       { transform: scale(1); opacity: 1; filter: blur(0) brightness(1); }
+    32%, 62%  { transform: scale(1); opacity: 1; filter: blur(0) brightness(1); }
+    78%       { transform: scale(0.4); opacity: 0; filter: blur(18px) brightness(1.8); }
+    100%      { transform: scale(0.4); opacity: 0; filter: blur(18px) brightness(1.8); }
+  }
+  @keyframes warp-streak {
+    0%, 12%   { opacity: 0; transform: scale(0.6); }
+    22%       { opacity: 1; transform: scale(1.8); }
+    30%       { opacity: 0.7; transform: scale(3.2); }
+    34%, 58%  { opacity: 0; transform: scale(0.6); }
+    68%       { opacity: 1; transform: scale(1.8); }
+    76%       { opacity: 0.7; transform: scale(3.2); }
+    80%, 100% { opacity: 0; transform: scale(0.6); }
+  }
+  @keyframes warp-flash {
+    0%, 26.5% { opacity: 0; }
+    27%, 28%  { opacity: 0.85; }
+    28.5%, 72.5% { opacity: 0; }
+    73%, 74%  { opacity: 0.85; }
+    74.5%, 100% { opacity: 0; }
+  }
+
+  /* SHAKE CUT
+     3-frame handheld jolt at the cut point. Both shots jolt
+     in sync; A → B swap happens inside the jolt so the cut
+     reads as impact, not dissolve. Classic action-beat trick. */
+  .fx-shake .shot-a {
+    z-index: 2;
+    animation:
+      shake-jolt 3.8s infinite,
+      shake-vis-a 3.8s linear infinite;
+  }
+  .fx-shake .shot-b {
+    animation: shake-jolt 3.8s infinite;
+  }
+  @keyframes shake-jolt {
+    0%, 25%   { transform: translate(0, 0); }
+    26%       { transform: translate(-12px, 6px); }
+    27%       { transform: translate(14px, -8px); }
+    28%       { transform: translate(-7px, -5px); }
+    29%, 75%  { transform: translate(0, 0); }
+    76%       { transform: translate(10px, -6px); }
+    77%       { transform: translate(-14px, 8px); }
+    78%       { transform: translate(6px, 5px); }
+    79%, 100% { transform: translate(0, 0); }
+  }
+  @keyframes shake-vis-a {
+    0%, 27.9%  { opacity: 1; }
+    28%, 77.9% { opacity: 0; }
+    78%, 100%  { opacity: 1; }
+  }
+
+  /* FLASH FRAME
+     1–2 frame full white stab. Cut lands inside the white.
+     Distinct from dip-to-white: no ease, just punch. */
+  .fx-flash .shot-a {
+    z-index: 2;
+    animation: flash-swap-a 3.8s linear infinite;
+  }
+  .fx-flash .overlay {
+    position: absolute; inset: 0; background: #fff;
+    opacity: 0; pointer-events: none; z-index: 3;
+    animation: flash-blink 3.8s linear infinite;
+  }
+  @keyframes flash-blink {
+    0%, 25.9%   { opacity: 0; }
+    26%, 28.4%  { opacity: 1; }
+    28.5%, 75.9% { opacity: 0; }
+    76%, 78.4%  { opacity: 1; }
+    78.5%, 100% { opacity: 0; }
+  }
+  @keyframes flash-swap-a {
+    0%, 26.9%  { opacity: 1; }
+    27%, 76.9% { opacity: 0; }
+    77%, 100%  { opacity: 1; }
+  }
+
+  /* CROSS-ZOOM
+     A and B both scale through the same centre with heavy
+     blur in the middle. Two engines pulling — bigger pop
+     than zoom-punch, softer than warp-speed. */
+  .fx-cross .shot-a {
+    z-index: 2;
+    animation: cross-a 4s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    transform-origin: center;
+  }
+  .fx-cross .shot-b {
+    animation: cross-b 4s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    transform-origin: center;
+  }
+  @keyframes cross-a {
+    0%, 15%   { transform: scale(1);   opacity: 1; filter: blur(0) brightness(1); }
+    33%       { transform: scale(2.2); opacity: 0; filter: blur(14px) brightness(1.5); }
+    65%       { transform: scale(2.2); opacity: 0; filter: blur(14px) brightness(1.5); }
+    83%, 100% { transform: scale(1);   opacity: 1; filter: blur(0) brightness(1); }
+  }
+  @keyframes cross-b {
+    0%, 15%   { transform: scale(2.2); opacity: 0; filter: blur(14px) brightness(1.5); }
+    33%       { transform: scale(1);   opacity: 1; filter: blur(0) brightness(1); }
+    65%       { transform: scale(1);   opacity: 1; filter: blur(0) brightness(1); }
+    83%, 100% { transform: scale(2.2); opacity: 0; filter: blur(14px) brightness(1.5); }
+  }
+
+  /* MATCH-CUT FRAME-SHAPE
+     Shot B revealed through a star clip-path that grows from
+     zero. Template — swap in any polygon (circle, phone frame,
+     heart, silhouette) for the real match cut in AE. */
+  .fx-shape .shot-b {
+    clip-path: polygon(50% 2%, 61% 38%, 98% 38%, 68% 60%, 79% 98%, 50% 75%, 21% 98%, 32% 60%, 2% 38%, 39% 38%);
+    transform: scale(0);
+    transform-origin: center;
+    animation: shape-cycle 4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+  @keyframes shape-cycle {
+    0%, 15%   { transform: scale(0); }
+    35%       { transform: scale(2.4); }
+    65%       { transform: scale(2.4); }
+    85%, 100% { transform: scale(0); }
+  }
+
+  /* SHATTER
+     Five shards radiate from an impact point at (50%, 45%).
+     Crack-lines appear a beat before the shatter, then a white
+     flash at impact, then shards fly fully off-screen. Glass/
+     mirror break-reveal. */
+  .fx-shatter .shard {
+    position: absolute; inset: 0;
+    background-image: url('images/neon-alley.png');
+    background-size: cover;
+    background-position: center;
+    z-index: 3;
+    transform-origin: 50% 45%;
+    animation: shatter-cycle 4s cubic-bezier(0.55, 0, 0.25, 1) infinite;
+  }
+  .fx-shatter .shard.s1 {
+    clip-path: polygon(0 0, 55% 0, 50% 45%, 25% 28%);
+    --tx: -55%; --ty: -135%; --r: -22deg;
+  }
+  .fx-shatter .shard.s2 {
+    clip-path: polygon(55% 0, 100% 0, 100% 38%, 50% 45%);
+    --tx: 65%; --ty: -125%; --r: 18deg;
+  }
+  .fx-shatter .shard.s3 {
+    clip-path: polygon(100% 38%, 100% 100%, 65% 82%, 50% 45%);
+    --tx: 150%; --ty: 25%; --r: 32deg;
+  }
+  .fx-shatter .shard.s4 {
+    clip-path: polygon(65% 82%, 100% 100%, 0 100%, 32% 72%, 50% 45%);
+    --tx: 12%; --ty: 150%; --r: -14deg;
+  }
+  .fx-shatter .shard.s5 {
+    clip-path: polygon(0 0, 25% 28%, 50% 45%, 32% 72%, 0 100%);
+    --tx: -150%; --ty: 28%; --r: -38deg;
+  }
+  .fx-shatter .flash {
+    position: absolute; inset: 0; background: #fff;
+    opacity: 0; pointer-events: none; z-index: 5;
+    animation: shatter-flash 4s linear infinite;
+  }
+  .fx-shatter .cracks {
+    position: absolute; inset: 0; pointer-events: none;
+    z-index: 4; opacity: 0;
+    animation: shatter-cracks 4s linear infinite;
+  }
+  .fx-shatter .cracks line {
+    stroke: #fff;
+    stroke-width: 0.35;
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 0.4px #fff);
+  }
+  @keyframes shatter-cycle {
+    0%, 30%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+    34%       { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+    54%       { transform: translate(var(--tx), var(--ty)) rotate(var(--r)); opacity: 1; }
+    60%, 82%  { transform: translate(var(--tx), var(--ty)) rotate(var(--r)); opacity: 0; }
+    94%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  }
+  @keyframes shatter-flash {
+    0%, 32.5%   { opacity: 0; }
+    33%, 34%    { opacity: 1; }
+    34.5%, 100% { opacity: 0; }
+  }
+  @keyframes shatter-cracks {
+    0%, 28%   { opacity: 0; }
+    29%, 33%  { opacity: 1; }
+    33.5%, 100% { opacity: 0; }
+  }
+
+  /* INK BLEED / WATERCOLOUR
+     Circle clip-path grows from a point; fed through an SVG
+     turbulence displacement so the edge bleeds like pigment
+     into paper. Low frequency = blotchy, high = lace. */
+  .fx-ink svg.defs { position: absolute; width: 0; height: 0; }
+  .fx-ink .shot-b {
+    filter: url(#ink-filter);
+    clip-path: circle(0% at 42% 58%);
+    animation: ink-cycle 4.4s cubic-bezier(0.4, 0.1, 0.3, 1) infinite;
+  }
+  @keyframes ink-cycle {
+    0%, 12%   { clip-path: circle(0% at 42% 58%); }
+    40%       { clip-path: circle(95% at 42% 58%); }
+    62%       { clip-path: circle(95% at 42% 58%); }
+    88%, 100% { clip-path: circle(0% at 42% 58%); }
+  }
+
+  /* SMOKE / FOG DISSOLVE
+     Heavy fractal noise cloud rolls across the stage and fully
+     occludes (normal blend, not screen) so the A→B swap happens
+     invisibly inside the thickest part. Alpha channel multiplied
+     to push more of the texture fully opaque at peak. */
+  .fx-smoke .shot-a {
+    z-index: 2;
+    animation: smoke-swap-a 4.2s linear infinite;
+  }
+  .fx-smoke .smoke {
+    position: absolute; inset: -25%;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.008' numOctaves='4' seed='11'/><feColorMatrix values='0 0 0 0 0.86  0 0 0 0 0.86  0 0 0 0 0.88  0 0 0 3.2 0'/></filter><rect width='100%25' height='100%25' filter='url(%23f)'/></svg>");
+    background-size: 180% 180%;
+    background-repeat: no-repeat;
+    opacity: 0;
+    filter: blur(6px) contrast(1.45);
+    pointer-events: none;
+    z-index: 4;
+    animation: smoke-roll 4.2s ease-in-out infinite;
+  }
+  .fx-smoke .smoke.layer-2 {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='3' seed='27'/><feColorMatrix values='0 0 0 0 0.82  0 0 0 0 0.82  0 0 0 0 0.85  0 0 0 2.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23f)'/></svg>");
+    background-size: 220% 220%;
+    filter: blur(10px) contrast(1.3);
+    z-index: 5;
+    animation: smoke-roll-2 4.2s ease-in-out infinite;
+  }
+  @keyframes smoke-swap-a {
+    0%, 28.9%  { opacity: 1; }
+    29%, 78.9% { opacity: 0; }
+    79%, 100%  { opacity: 1; }
+  }
+  @keyframes smoke-roll {
+    0%    { opacity: 0;   transform: translateX(-30%) scale(1.1); }
+    14%   { opacity: 0.7; transform: translateX(-14%) scale(1.2); }
+    24%   { opacity: 1;   transform: translateX(-2%)  scale(1.3); }
+    34%   { opacity: 1;   transform: translateX(10%)  scale(1.3); }
+    44%   { opacity: 0.7; transform: translateX(22%)  scale(1.2); }
+    55%   { opacity: 0;   transform: translateX(40%)  scale(1.1); }
+    60%   { opacity: 0;   transform: translateX(-30%) scale(1.1); }
+    66%   { opacity: 0.7; transform: translateX(-14%) scale(1.2); }
+    74%   { opacity: 1;   transform: translateX(-2%)  scale(1.3); }
+    84%   { opacity: 1;   transform: translateX(10%)  scale(1.3); }
+    94%   { opacity: 0.7; transform: translateX(22%)  scale(1.2); }
+    100%  { opacity: 0;   transform: translateX(40%)  scale(1.1); }
+  }
+  @keyframes smoke-roll-2 {
+    0%    { opacity: 0;   transform: translateX(35%)  translateY(-8%) scale(1.15); }
+    16%   { opacity: 0.6; transform: translateX(18%)  translateY(-4%) scale(1.25); }
+    26%   { opacity: 1;   transform: translateX(6%)   translateY(0%)  scale(1.35); }
+    34%   { opacity: 1;   transform: translateX(-6%)  translateY(4%)  scale(1.35); }
+    44%   { opacity: 0.6; transform: translateX(-18%) translateY(8%)  scale(1.25); }
+    55%   { opacity: 0;   transform: translateX(-40%) translateY(12%) scale(1.15); }
+    60%   { opacity: 0;   transform: translateX(35%)  translateY(-8%) scale(1.15); }
+    68%   { opacity: 0.6; transform: translateX(18%)  translateY(-4%) scale(1.25); }
+    76%   { opacity: 1;   transform: translateX(6%)   translateY(0%)  scale(1.35); }
+    84%   { opacity: 1;   transform: translateX(-6%)  translateY(4%)  scale(1.35); }
+    94%   { opacity: 0.6; transform: translateX(-18%) translateY(8%)  scale(1.25); }
+    100%  { opacity: 0;   transform: translateX(-40%) translateY(12%) scale(1.15); }
+  }
+
+  footer {
+    margin-top: 60px; padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 12px; line-height: 1.7;
+  }
+
+  @media (max-width: 860px) {
+    body { padding: 20px 16px 60px; }
+    header.page-header h1 { font-size: 32px; }
+    .grid { grid-template-columns: 1fr; }
+    .shot .label { font-size: 32px; }
+  }
+
+  /* ============================================ */
+  /* Fullscreen view — click a tile to expand     */
+  /* ============================================ */
+  .demo:fullscreen {
+    width: 100vw; height: 100vh;
+    padding: 48px 64px;
+    background: var(--bg);
+    border: none; border-radius: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 32px;
+    cursor: pointer;
+  }
+  .demo:fullscreen .stage {
+    width: min(92vw, calc((100vh - 220px) * 16 / 9));
+    aspect-ratio: 16 / 9;
+    margin-bottom: 0;
+    flex: none;
+  }
+  .demo:fullscreen .meta {
+    text-align: center;
+    max-width: 720px;
+  }
+  .demo:fullscreen .meta .title { font-size: 26px; margin-bottom: 8px; }
+  .demo:fullscreen .meta .desc { font-size: 15px; }
+
+  /* ============================================ */
+  /* 3D card flip (CSS perspective)               */
+  /* ============================================ */
+  .fx-flip .stage { perspective: 1000px; background: #080808; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; }
+  .fx-flip .card3d {
+    width: 58%; aspect-ratio: 3/4; position: relative;
+    transform-style: preserve-3d;
+    transition: transform 700ms cubic-bezier(.3,.8,.3,1);
+  }
+  .fx-flip .stage:hover .card3d { transform: rotateY(180deg); }
+  .fx-flip .face {
+    position: absolute; inset: 0; border-radius: 6px;
+    backface-visibility: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--display); font-size: 28px; letter-spacing: 2px;
+    text-transform: uppercase;
+    box-shadow: 0 8px 30px rgba(0,0,0,.5);
+  }
+  .fx-flip .front {
+    background: linear-gradient(135deg, var(--accent), #c95e0a);
+    color: #0a0a0a;
+  }
+  .fx-flip .back {
+    background: linear-gradient(135deg, #1a1f2a, #0a0d14);
+    color: var(--accent); transform: rotateY(180deg);
+    border: 1px solid rgba(255,122,26,.3);
+  }
+
+  /* ============================================ */
+  /* HIT TRANSITIONS                              */
+  /* Impact / shake / punch family. Cut lands     */
+  /* inside the worst frame so the swap reads as  */
+  /* impact, not dissolve. All loop A → B → A on  */
+  /* the same 3.8s cycle. Use CSS individual      */
+  /* transform properties (translate / scale /    */
+  /* rotate) so multiple animations can stack on  */
+  /* one element without fighting over            */
+  /* `transform`.                                  */
+  /* ============================================ */
+
+  /* Shared shake decay — 4 ramped jolts at 27% and 77% of the
+     cycle, ringing down. Used by every hit-* effect that wants
+     a frame-shake at the cut point. Touches `translate` only,
+     so it composes with `scale:`, `rotate:` from sibling
+     animations on the same element. */
+  @keyframes hit-shake-decay {
+    0%, 24.4%    { translate: 0 0; }
+    25.5%        { translate: -14px 6px; }
+    26.5%        { translate: 12px -8px; }
+    27.5%        { translate: -7px -5px; }
+    28.5%        { translate: 4px 3px; }
+    29.5%, 74.4% { translate: 0 0; }
+    75.5%        { translate: 13px -7px; }
+    76.5%        { translate: -14px 9px; }
+    77.5%        { translate: 7px 5px; }
+    78.5%        { translate: -3px -3px; }
+    79.5%, 100%  { translate: 0 0; }
+  }
+
+  /* Shared visibility swap — A is on top until the cut frame,
+     then B is on top until the next cut. Sharper than a fade. */
+  @keyframes hit-vis-a {
+    0%, 27.4%    { opacity: 1; }
+    27.5%, 77.4% { opacity: 0; }
+    77.5%, 100%  { opacity: 1; }
+  }
+
+  /* HIT PUNCH
+     Heavier than `fx-zoom`. Sharper scale ramp, frame shake
+     holds for 3 frames after impact. */
+  .fx-hit-punch .shot-a {
+    z-index: 2;
+    animation: hit-punch-a 3.8s cubic-bezier(0.5,0,0.2,1) infinite,
+               hit-shake-decay 3.8s linear infinite;
+  }
+  .fx-hit-punch .shot-b {
+    animation: hit-punch-b 3.8s cubic-bezier(0.5,0,0.2,1) infinite,
+               hit-shake-decay 3.8s linear infinite;
+  }
+  @keyframes hit-punch-a {
+    0%, 18%   { scale: 1; opacity: 1; filter: blur(0); }
+    27%       { scale: 1.5; opacity: 0; filter: blur(8px); }
+    35%, 65%  { scale: 1.5; opacity: 0; filter: blur(8px); }
+    77%       { scale: 1.5; opacity: 0; filter: blur(8px); }
+    85%, 100% { scale: 1; opacity: 1; filter: blur(0); }
+  }
+  @keyframes hit-punch-b {
+    0%, 18%   { scale: 0.6; opacity: 0; filter: blur(8px); }
+    27%       { scale: 1.05; opacity: 1; filter: blur(0); }
+    35%, 65%  { scale: 1; opacity: 1; filter: blur(0); }
+    77%       { scale: 0.6; opacity: 0; filter: blur(8px); }
+    85%, 100% { scale: 0.6; opacity: 0; filter: blur(8px); }
+  }
+
+  /* HIT SHAKE — VERTICAL
+     Pure Y-axis earthquake. Cut hides inside the worst frame. */
+  .fx-hit-shake-vert .shot-a {
+    z-index: 2;
+    animation: hit-shake-vert 3.8s linear infinite,
+               hit-vis-a 3.8s linear infinite;
+  }
+  .fx-hit-shake-vert .shot-b {
+    animation: hit-shake-vert 3.8s linear infinite;
+  }
+  @keyframes hit-shake-vert {
+    0%, 24%      { translate: 0 0; }
+    25.5%        { translate: 0 18px; }
+    26.5%        { translate: 0 -16px; }
+    27.5%        { translate: 0 12px; }
+    28.5%        { translate: 0 -8px; }
+    29.5%        { translate: 0 4px; }
+    30.5%, 74%   { translate: 0 0; }
+    75.5%        { translate: 0 -16px; }
+    76.5%        { translate: 0 18px; }
+    77.5%        { translate: 0 -10px; }
+    78.5%        { translate: 0 6px; }
+    79.5%, 100%  { translate: 0 0; }
+  }
+
+  /* HIT SHAKE — HORIZONTAL
+     Pure X-axis ratchet. Sharper than vertical because eyes
+     read left-right motion as faster. */
+  .fx-hit-shake-horiz .shot-a {
+    z-index: 2;
+    animation: hit-shake-horiz 3.8s linear infinite,
+               hit-vis-a 3.8s linear infinite;
+  }
+  .fx-hit-shake-horiz .shot-b {
+    animation: hit-shake-horiz 3.8s linear infinite;
+  }
+  @keyframes hit-shake-horiz {
+    0%, 24%      { translate: 0 0; }
+    25.5%        { translate: 22px 0; }
+    26.5%        { translate: -20px 0; }
+    27.5%        { translate: 14px 0; }
+    28.5%        { translate: -8px 0; }
+    29.5%        { translate: 3px 0; }
+    30.5%, 74%   { translate: 0 0; }
+    75.5%        { translate: -20px 0; }
+    76.5%        { translate: 22px 0; }
+    77.5%        { translate: -12px 0; }
+    78.5%        { translate: 5px 0; }
+    79.5%, 100%  { translate: 0 0; }
+  }
+
+  /* HIT SHAKE — ROLL
+     Wobble shake — translate plus rotation oscillation. Reads as
+     handheld camera taking a punch. */
+  .fx-hit-shake-roll .shot-a {
+    z-index: 2;
+    animation: hit-shake-roll-tr 3.8s linear infinite,
+               hit-shake-roll-rot 3.8s linear infinite,
+               hit-vis-a 3.8s linear infinite;
+  }
+  .fx-hit-shake-roll .shot-b {
+    animation: hit-shake-roll-tr 3.8s linear infinite,
+               hit-shake-roll-rot 3.8s linear infinite;
+  }
+  @keyframes hit-shake-roll-tr {
+    0%, 24%      { translate: 0 0; }
+    25.5%        { translate: -10px 5px; }
+    26.5%        { translate: 8px -6px; }
+    27.5%        { translate: -4px 3px; }
+    28.5%        { translate: 2px -1px; }
+    29.5%, 74%   { translate: 0 0; }
+    75.5%        { translate: 8px -4px; }
+    76.5%        { translate: -9px 6px; }
+    77.5%        { translate: 5px -3px; }
+    78.5%        { translate: -2px 1px; }
+    79.5%, 100%  { translate: 0 0; }
+  }
+  @keyframes hit-shake-roll-rot {
+    0%, 24%      { rotate: 0deg; }
+    25.5%        { rotate: -3.5deg; }
+    26.5%        { rotate: 4deg; }
+    27.5%        { rotate: -1.8deg; }
+    28.5%        { rotate: 0.8deg; }
+    29.5%, 74%   { rotate: 0deg; }
+    75.5%        { rotate: 3deg; }
+    76.5%        { rotate: -3.5deg; }
+    77.5%        { rotate: 1.5deg; }
+    78.5%        { rotate: -0.6deg; }
+    79.5%, 100%  { rotate: 0deg; }
+  }
+
+  /* HIT RGB KICK
+     Pure chromatic channel split snap. Red shifts right, blue
+     shifts left, green stays. Cut happens during the split, so
+     the swap is masked by the split chaos. SVG filter does the
+     real channel separation; the CSS just times the visibility
+     swap and a small brightness pop. */
+  .fx-hit-rgb-kick .shot-a,
+  .fx-hit-rgb-kick .shot-b {
+    filter: url(#hit-rgb-kick-filter);
+  }
+  .fx-hit-rgb-kick .shot-a {
+    z-index: 2;
+    animation: hit-rgb-bright 3.8s linear infinite,
+               hit-vis-a 3.8s linear infinite;
+  }
+  .fx-hit-rgb-kick .shot-b {
+    animation: hit-rgb-bright 3.8s linear infinite;
+  }
+  @keyframes hit-rgb-bright {
+    0%, 25.5%    { filter: url(#hit-rgb-kick-filter) brightness(1); }
+    27%          { filter: url(#hit-rgb-kick-filter) brightness(1.4); }
+    30%, 75.5%   { filter: url(#hit-rgb-kick-filter) brightness(1); }
+    77%          { filter: url(#hit-rgb-kick-filter) brightness(1.4); }
+    80%, 100%    { filter: url(#hit-rgb-kick-filter) brightness(1); }
+  }
+
+  /* HIT SPIN
+     90-degree rotation kick at the cut. Motion blur via CSS
+     `filter: blur()` masks the swap. */
+  .fx-hit-spin .shot-a {
+    z-index: 2;
+    animation: hit-spin-a 3.8s cubic-bezier(0.65, 0, 0.35, 1) infinite,
+               hit-shake-decay 3.8s linear infinite;
+  }
+  .fx-hit-spin .shot-b {
+    animation: hit-spin-b 3.8s cubic-bezier(0.65, 0, 0.35, 1) infinite,
+               hit-shake-decay 3.8s linear infinite;
+  }
+  @keyframes hit-spin-a {
+    0%, 18%   { rotate: 0deg; opacity: 1; filter: blur(0); }
+    27%       { rotate: 60deg; opacity: 0; filter: blur(12px); }
+    35%, 65%  { rotate: 60deg; opacity: 0; filter: blur(12px); }
+    77%       { rotate: 60deg; opacity: 0; filter: blur(12px); }
+    85%, 100% { rotate: 0deg; opacity: 1; filter: blur(0); }
+  }
+  @keyframes hit-spin-b {
+    0%, 18%   { rotate: -60deg; opacity: 0; filter: blur(12px); }
+    27%       { rotate: 0deg; opacity: 1; filter: blur(0); }
+    35%, 65%  { rotate: 0deg; opacity: 1; filter: blur(0); }
+    77%       { rotate: -60deg; opacity: 0; filter: blur(12px); }
+    85%, 100% { rotate: -60deg; opacity: 0; filter: blur(12px); }
+  }
+
+  /* HIT SPIN + RGB
+     Spin combined with chromatic split. The most aggressive
+     of the rotation hits — sells action / trailer beats. */
+  .fx-hit-spin-rgb .shot-a,
+  .fx-hit-spin-rgb .shot-b {
+    filter: url(#hit-spin-rgb-filter);
+  }
+  .fx-hit-spin-rgb .shot-a {
+    z-index: 2;
+    animation: hit-spin-rgb-a 3.8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+  .fx-hit-spin-rgb .shot-b {
+    animation: hit-spin-rgb-b 3.8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+  @keyframes hit-spin-rgb-a {
+    0%, 18%   { rotate: 0deg; scale: 1; opacity: 1; }
+    27%       { rotate: 90deg; scale: 1.2; opacity: 0; }
+    35%, 65%  { rotate: 90deg; scale: 1.2; opacity: 0; }
+    77%       { rotate: 90deg; scale: 1.2; opacity: 0; }
+    85%, 100% { rotate: 0deg; scale: 1; opacity: 1; }
+  }
+  @keyframes hit-spin-rgb-b {
+    0%, 18%   { rotate: -90deg; scale: 0.8; opacity: 0; }
+    27%       { rotate: 0deg; scale: 1; opacity: 1; }
+    35%, 65%  { rotate: 0deg; scale: 1; opacity: 1; }
+    77%       { rotate: -90deg; scale: 0.8; opacity: 0; }
+    85%, 100% { rotate: -90deg; scale: 0.8; opacity: 0; }
+  }
+
+  /* HIT GLITCH
+     Chromatic split + scanlines + shake. Densest of the hit
+     family — for moments where the cut should feel like the
+     edit broke the signal. */
+  .fx-hit-glitch .shot-a,
+  .fx-hit-glitch .shot-b {
+    filter: url(#hit-glitch-filter);
+  }
+  .fx-hit-glitch .shot-a {
+    z-index: 2;
+    animation: hit-shake-decay 3.8s linear infinite,
+               hit-vis-a 3.8s linear infinite;
+  }
+  .fx-hit-glitch .shot-b {
+    animation: hit-shake-decay 3.8s linear infinite;
+  }
+  .fx-hit-glitch .scanlines {
+    position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(
+        180deg,
+        rgba(255,255,255,0.05) 0,
+        rgba(255,255,255,0.05) 1px,
+        transparent 1px,
+        transparent 3px
+      ),
+      repeating-linear-gradient(
+        180deg,
+        rgba(255,0,80,0.0) 0,
+        rgba(255,0,80,0.0) 6px,
+        rgba(0,200,255,0.12) 7px,
+        rgba(0,200,255,0.0) 8px
+      );
+    mix-blend-mode: screen;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 4;
+    animation: hit-glitch-scan 3.8s linear infinite;
+  }
+  @keyframes hit-glitch-scan {
+    0%, 25%      { opacity: 0; transform: translateY(0); }
+    26%, 30%     { opacity: 0.85; transform: translateY(-6px); }
+    31%, 75%     { opacity: 0; transform: translateY(0); }
+    76%, 80%     { opacity: 0.85; transform: translateY(8px); }
+    81%, 100%    { opacity: 0; transform: translateY(0); }
+  }
+
+  /* HIT STRETCH
+     Horizontal squeeze — frame compresses to a thin slice and
+     pops back. Reads as a hard sideways punch through. */
+  .fx-hit-stretch .shot-a {
+    z-index: 2;
+    animation: hit-stretch-a 3.8s cubic-bezier(0.5,0,0.2,1) infinite,
+               hit-shake-decay 3.8s linear infinite;
+  }
+  .fx-hit-stretch .shot-b {
+    animation: hit-stretch-b 3.8s cubic-bezier(0.5,0,0.2,1) infinite,
+               hit-shake-decay 3.8s linear infinite;
+  }
+  @keyframes hit-stretch-a {
+    0%, 18%   { scale: 1 1; opacity: 1; filter: blur(0); }
+    27%       { scale: 1.6 0.4; opacity: 0; filter: blur(6px); }
+    35%, 65%  { scale: 1.6 0.4; opacity: 0; filter: blur(6px); }
+    77%       { scale: 1.6 0.4; opacity: 0; filter: blur(6px); }
+    85%, 100% { scale: 1 1; opacity: 1; filter: blur(0); }
+  }
+  @keyframes hit-stretch-b {
+    0%, 18%   { scale: 0.4 1.6; opacity: 0; filter: blur(6px); }
+    27%       { scale: 1 1; opacity: 1; filter: blur(0); }
+    35%, 65%  { scale: 1 1; opacity: 1; filter: blur(0); }
+    77%       { scale: 0.4 1.6; opacity: 0; filter: blur(6px); }
+    85%, 100% { scale: 0.4 1.6; opacity: 0; filter: blur(6px); }
+  }
+
+  /* HIT SQUASH
+     Vertical squash — frame collapses to a thin band. Pairs
+     well with a low-frequency sub-bass hit on the audio. */
+  .fx-hit-squash .shot-a {
+    z-index: 2;
+    animation: hit-squash-a 3.8s cubic-bezier(0.5,0,0.2,1) infinite,
+               hit-shake-decay 3.8s linear infinite;
+  }
+  .fx-hit-squash .shot-b {
+    animation: hit-squash-b 3.8s cubic-bezier(0.5,0,0.2,1) infinite,
+               hit-shake-decay 3.8s linear infinite;
+  }
+  @keyframes hit-squash-a {
+    0%, 18%   { scale: 1 1; opacity: 1; filter: blur(0); }
+    27%       { scale: 0.4 1.6; opacity: 0; filter: blur(6px); }
+    35%, 65%  { scale: 0.4 1.6; opacity: 0; filter: blur(6px); }
+    77%       { scale: 0.4 1.6; opacity: 0; filter: blur(6px); }
+    85%, 100% { scale: 1 1; opacity: 1; filter: blur(0); }
+  }
+  @keyframes hit-squash-b {
+    0%, 18%   { scale: 1.6 0.4; opacity: 0; filter: blur(6px); }
+    27%       { scale: 1 1; opacity: 1; filter: blur(0); }
+    35%, 65%  { scale: 1 1; opacity: 1; filter: blur(0); }
+    77%       { scale: 1.6 0.4; opacity: 0; filter: blur(6px); }
+    85%, 100% { scale: 1.6 0.4; opacity: 0; filter: blur(6px); }
+  }
+
+  /* HIT BOUNCE
+     Anticipation drop — frame lifts up, then slams down with
+     bounce-and-settle. Vertical drop hit. */
+  .fx-hit-bounce .shot-a {
+    z-index: 2;
+    animation: hit-bounce-a 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite,
+               hit-vis-a 3.8s linear infinite;
+  }
+  .fx-hit-bounce .shot-b {
+    animation: hit-bounce-b 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes hit-bounce-a {
+    0%, 12%   { translate: 0 0; }
+    20%       { translate: 0 -40px; }
+    27%       { translate: 0 0; }
+    28%       { translate: 0 8px; }
+    30%       { translate: 0 -3px; }
+    32%, 65%  { translate: 0 0; }
+    77%       { translate: 0 0; }
+    78%       { translate: 0 -8px; }
+    79%, 100% { translate: 0 0; }
+  }
+  @keyframes hit-bounce-b {
+    0%, 18%   { translate: 0 -100%; }
+    27%       { translate: 0 0; }
+    28%       { translate: 0 12px; }
+    30%       { translate: 0 -4px; }
+    32%, 65%  { translate: 0 0; }
+    77%       { translate: 0 -100%; }
+    100%      { translate: 0 -100%; }
+  }
+
+  /* HIT JELLY
+     Jelly-roll wobble — scale oscillation that overshoots,
+     undershoots, and settles. Combined with mild skew to push
+     the wobble feel. Used at the cut and on the unwind. */
+  .fx-hit-jelly .shot-a {
+    z-index: 2;
+    animation: hit-jelly-a 3.8s cubic-bezier(0.34, 1.56, 0.64, 1) infinite,
+               hit-vis-a 3.8s linear infinite;
+  }
+  .fx-hit-jelly .shot-b {
+    animation: hit-jelly-b 3.8s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  }
+  @keyframes hit-jelly-a {
+    0%, 18%   { scale: 1 1; }
+    25%       { scale: 1.25 0.78; }
+    27%       { scale: 0.85 1.18; }
+    29%       { scale: 1.06 0.96; }
+    31%, 75%  { scale: 1 1; }
+    77%       { scale: 1.18 0.85; }
+    79%       { scale: 1 1; }
+    100%      { scale: 1 1; }
+  }
+  @keyframes hit-jelly-b {
+    0%, 24%   { scale: 0.3 1.7; opacity: 0; }
+    27%       { scale: 1.18 0.85; opacity: 1; }
+    29%       { scale: 0.94 1.06; opacity: 1; }
+    31%, 75%  { scale: 1 1; opacity: 1; }
+    78%       { scale: 0.3 1.7; opacity: 0; }
+    100%      { scale: 0.3 1.7; opacity: 0; }
+  }
+
+  /* HIT FLASH IMPACT
+     Heavier than the existing `fx-flash` (which is a 2-frame
+     stab). This one blooms wide, holds for 4 frames, then
+     decays through frame shake. Reads as a real impact, not
+     a strobe. */
+  .fx-hit-flash-impact .shot-a {
+    z-index: 2;
+    animation: hit-vis-a 3.8s linear infinite,
+               hit-shake-decay 3.8s linear infinite;
+  }
+  .fx-hit-flash-impact .shot-b {
+    animation: hit-shake-decay 3.8s linear infinite;
+  }
+  .fx-hit-flash-impact .overlay {
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 50%,
+      #fff 0%, #fff 35%, rgba(255,255,255,0.4) 60%, transparent 95%);
+    opacity: 0; pointer-events: none; z-index: 5;
+    animation: hit-flash-bloom 3.8s linear infinite;
+  }
+  @keyframes hit-flash-bloom {
+    0%, 25%      { opacity: 0; scale: 0.6; }
+    26%          { opacity: 1; scale: 1.1; }
+    27%, 30%     { opacity: 0.95; scale: 1.4; }
+    33%          { opacity: 0; scale: 1.5; }
+    34%, 75%     { opacity: 0; scale: 0.6; }
+    76%          { opacity: 1; scale: 1.1; }
+    77%, 80%     { opacity: 0.95; scale: 1.4; }
+    83%          { opacity: 0; scale: 1.5; }
+    84%, 100%    { opacity: 0; scale: 0.6; }
+  }
+
+  /* HIT ANAMORPHIC
+     Horizontal lens-flare streak rips across the frame at the
+     cut. Cinematic action-trailer feel. The streak is a long
+     thin gradient that stretches and fades through the cut. */
+  .fx-hit-anamorphic .shot-a {
+    z-index: 2;
+    animation: hit-vis-a 3.8s linear infinite,
+               hit-shake-decay 3.8s linear infinite;
+  }
+  .fx-hit-anamorphic .shot-b {
+    animation: hit-shake-decay 3.8s linear infinite;
+  }
+  .fx-hit-anamorphic .streak {
+    position: absolute; inset: 50% 0 auto 0;
+    height: 6px; margin-top: -3px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(120, 200, 255, 0) 10%,
+      rgba(140, 220, 255, 0.9) 35%,
+      rgba(220, 240, 255, 1) 50%,
+      rgba(140, 220, 255, 0.9) 65%,
+      rgba(120, 200, 255, 0) 90%,
+      transparent 100%);
+    box-shadow:
+      0 0 16px 4px rgba(140, 220, 255, 0.7),
+      0 0 32px 8px rgba(120, 200, 255, 0.4);
+    mix-blend-mode: screen;
+    pointer-events: none; z-index: 5;
+    opacity: 0; scale: 0 1;
+    animation: hit-anamorphic-streak 3.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  }
+  @keyframes hit-anamorphic-streak {
+    0%, 22%      { opacity: 0; scale: 0 1; }
+    25%          { opacity: 0.6; scale: 0.4 1; }
+    27%          { opacity: 1; scale: 1.2 1.4; }
+    30%          { opacity: 0.7; scale: 1.4 0.8; }
+    34%          { opacity: 0; scale: 1.6 0.4; }
+    35%, 72%     { opacity: 0; scale: 0 1; }
+    75%          { opacity: 0.6; scale: 0.4 1; }
+    77%          { opacity: 1; scale: 1.2 1.4; }
+    80%          { opacity: 0.7; scale: 1.4 0.8; }
+    84%          { opacity: 0; scale: 1.6 0.4; }
+    85%, 100%    { opacity: 0; scale: 0 1; }
+  }
+
+  /* HIT INVERT
+     Single-frame colour invert at the impact point. Followed
+     by held shake. Subtle but reads as a hard cut, especially
+     paired with a sub-bass hit. */
+  .fx-hit-invert .shot-a {
+    z-index: 2;
+    animation: hit-invert-a 3.8s linear infinite,
+               hit-shake-decay 3.8s linear infinite;
+  }
+  .fx-hit-invert .shot-b {
+    animation: hit-invert-b 3.8s linear infinite,
+               hit-shake-decay 3.8s linear infinite;
+  }
+  @keyframes hit-invert-a {
+    0%, 25.5%    { opacity: 1; filter: invert(0); }
+    26%          { opacity: 1; filter: invert(1); }
+    27%, 27.5%   { opacity: 0; filter: invert(1); }
+    28%, 75.5%   { opacity: 0; filter: invert(0); }
+    76%          { opacity: 0; filter: invert(1); }
+    77%, 77.5%   { opacity: 1; filter: invert(1); }
+    78%, 100%    { opacity: 1; filter: invert(0); }
+  }
+  @keyframes hit-invert-b {
+    0%, 25.5%    { filter: invert(0); }
+    26%          { filter: invert(1); }
+    27%, 27.5%   { filter: invert(1); }
+    28%, 75.5%   { filter: invert(0); }
+    76%          { filter: invert(1); }
+    77%, 77.5%   { filter: invert(1); }
+    78%, 100%    { filter: invert(0); }
+  }
+
+  /* HIT DISTORTION ZOOM
+     Radial blur smear (faked via heavy CSS blur on a scaled
+     copy at peak) plus scale punch plus shake. The distortion
+     blur masks the cut. */
+  .fx-hit-distortion-zoom .shot-a {
+    z-index: 2;
+    animation: hit-dist-a 3.8s cubic-bezier(0.5,0,0.2,1) infinite,
+               hit-shake-decay 3.8s linear infinite;
+  }
+  .fx-hit-distortion-zoom .shot-b {
+    animation: hit-dist-b 3.8s cubic-bezier(0.5,0,0.2,1) infinite,
+               hit-shake-decay 3.8s linear infinite;
+  }
+  @keyframes hit-dist-a {
+    0%, 15%   { scale: 1; opacity: 1; filter: blur(0) brightness(1); }
+    24%       { scale: 1.6; opacity: 1; filter: blur(8px) brightness(1.4); }
+    28%       { scale: 2.2; opacity: 0; filter: blur(28px) brightness(2); }
+    35%, 65%  { scale: 2.2; opacity: 0; filter: blur(28px) brightness(2); }
+    77%       { scale: 2.2; opacity: 0; filter: blur(28px) brightness(2); }
+    85%, 100% { scale: 1; opacity: 1; filter: blur(0) brightness(1); }
+  }
+  @keyframes hit-dist-b {
+    0%, 18%   { scale: 0.45; opacity: 0; filter: blur(28px) brightness(2); }
+    27%       { scale: 0.85; opacity: 1; filter: blur(8px) brightness(1.4); }
+    32%       { scale: 1; opacity: 1; filter: blur(0) brightness(1); }
+    35%, 65%  { scale: 1; opacity: 1; filter: blur(0) brightness(1); }
+    77%       { scale: 0.45; opacity: 0; filter: blur(28px) brightness(2); }
+    85%, 100% { scale: 0.45; opacity: 0; filter: blur(28px) brightness(2); }
+  }
+
+  /* HIT WAVE
+     SVG turbulence displacement at the cut. Wavy distortion
+     hides the swap. Heavier render than the others — kept as a
+     `partial` per the triage triage notes. */
+  .fx-hit-wave .shot-a,
+  .fx-hit-wave .shot-b {
+    filter: url(#hit-wave-filter);
+  }
+  .fx-hit-wave .shot-a {
+    z-index: 2;
+    animation: hit-vis-a 3.8s linear infinite,
+               hit-shake-decay 3.8s linear infinite;
+  }
+  .fx-hit-wave .shot-b {
+    animation: hit-shake-decay 3.8s linear infinite;
+  }
+
+  /* ============================================ */
+  /* Smooth additions — P2.13b (2026-05-03)        */
+  /* Genuine gaps after audit: bokeh defocus,     */
+  /* pixel mosaic, particle scatter, lens-flare   */
+  /* wipe. Other smooth-family slots (ink-bleed,   */
+  /* smoke-dissolve, light-leak, liquid-wipe,     */
+  /* morph-cut) already cover the category.        */
+  /* ============================================ */
+
+  /* --- Bokeh defocus dissolve -------------------- */
+  .fx-bokeh .shot-a {
+    z-index: 2;
+    animation: bokeh-a 4.0s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .fx-bokeh .shot-b {
+    animation: bokeh-b 4.0s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes bokeh-a {
+    0%, 12%   { opacity: 1; filter: blur(0) brightness(1); transform: scale(1); }
+    34%       { opacity: 1; filter: blur(28px) brightness(1.25); transform: scale(1.04); }
+    50%       { opacity: 0; filter: blur(28px) brightness(1.25); transform: scale(1.04); }
+    62%, 100% { opacity: 0; filter: blur(0) brightness(1); transform: scale(1); }
+  }
+  @keyframes bokeh-b {
+    0%, 50%   { opacity: 0; filter: blur(28px) brightness(1.25); transform: scale(0.97); }
+    62%       { opacity: 1; filter: blur(28px) brightness(1.25); transform: scale(0.97); }
+    84%       { opacity: 1; filter: blur(0) brightness(1); transform: scale(1); }
+    100%      { opacity: 1; filter: blur(0) brightness(1); transform: scale(1); }
+  }
+  .fx-bokeh .bokeh-glow {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 30% 70%, rgba(255, 220, 180, 0.0) 30%, rgba(255, 220, 180, 0) 70%),
+      radial-gradient(circle at 70% 30%, rgba(180, 220, 255, 0.0) 25%, rgba(180, 220, 255, 0) 65%);
+    pointer-events: none; mix-blend-mode: screen;
+    animation: bokeh-glow 4.0s ease-in-out infinite;
+  }
+  @keyframes bokeh-glow {
+    0%, 18%   { background:
+                  radial-gradient(circle at 30% 70%, rgba(255,220,180,0.0), transparent 70%),
+                  radial-gradient(circle at 70% 30%, rgba(180,220,255,0.0), transparent 65%); }
+    44%       { background:
+                  radial-gradient(circle at 30% 70%, rgba(255,220,180,0.5), transparent 70%),
+                  radial-gradient(circle at 70% 30%, rgba(180,220,255,0.5), transparent 65%); }
+    56%       { background:
+                  radial-gradient(circle at 30% 70%, rgba(255,220,180,0.5), transparent 70%),
+                  radial-gradient(circle at 70% 30%, rgba(180,220,255,0.5), transparent 65%); }
+    82%, 100% { background:
+                  radial-gradient(circle at 30% 70%, rgba(255,220,180,0.0), transparent 70%),
+                  radial-gradient(circle at 70% 30%, rgba(180,220,255,0.0), transparent 65%); }
+  }
+
+  /* --- Pixel mosaic dissolve --------------------- */
+  .fx-mosaic .shot-a { z-index: 2; }
+  .fx-mosaic .shot-b { z-index: 1; }
+  .fx-mosaic .mosaic-grid {
+    position: absolute; inset: 0;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: repeat(7, 1fr);
+    z-index: 3;
+    pointer-events: none;
+  }
+  .fx-mosaic .mosaic-grid .tile {
+    background: var(--bg, #0a0a0a);
+    opacity: 0;
+    animation: mosaic-tile 4.0s steps(1, end) infinite;
+    animation-delay: calc(var(--mi, 0) * 16ms);
+  }
+  @keyframes mosaic-tile {
+    0%, 14%   { opacity: 0; }
+    18%       { opacity: 1; }
+    52%       { opacity: 1; }
+    56%       { opacity: 0; }
+    100%      { opacity: 0; }
+  }
+  .fx-mosaic .shot-b {
+    animation: mosaic-swap 4.0s steps(2, end) infinite;
+  }
+  @keyframes mosaic-swap {
+    0%, 35% { opacity: 0; }
+    36%, 100% { opacity: 1; }
+  }
+  .fx-mosaic .shot-a {
+    animation: mosaic-a-out 4.0s steps(2, end) infinite;
+  }
+  @keyframes mosaic-a-out {
+    0%, 35% { opacity: 1; }
+    36%, 100% { opacity: 0; }
+  }
+
+  /* --- Particle scatter dissolve ----------------- */
+  .fx-scatter .shot-a {
+    z-index: 2;
+    animation: scatter-a 4.0s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 100%, #000 100%);
+            mask-image: radial-gradient(circle at 50% 50%, #000 100%, #000 100%);
+  }
+  @keyframes scatter-a {
+    0%, 12%   { opacity: 1; filter: blur(0); }
+    32%       { opacity: 1; filter: blur(2px); }
+    50%       { opacity: 0; filter: blur(8px); }
+    62%, 100% { opacity: 0; filter: blur(0); }
+  }
+  .fx-scatter .shot-b {
+    animation: scatter-b 4.0s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  }
+  @keyframes scatter-b {
+    0%, 50%   { opacity: 0; filter: blur(8px); transform: scale(0.97); }
+    62%       { opacity: 1; filter: blur(2px); transform: scale(1); }
+    84%, 100% { opacity: 1; filter: blur(0); transform: scale(1); }
+  }
+  .fx-scatter .scatter-particles {
+    position: absolute; inset: 0; z-index: 3;
+    pointer-events: none;
+  }
+  .fx-scatter .scatter-particles .sp {
+    position: absolute;
+    width: 3px; height: 3px;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    top: var(--y, 50%); left: var(--x, 50%);
+    opacity: 0;
+    animation: scatter-particle 4.0s ease-in-out infinite;
+    animation-delay: var(--delay, 0s);
+  }
+  @keyframes scatter-particle {
+    0%, 22%   { opacity: 0; transform: translate(0, 0); }
+    32%       { opacity: 0.95; transform: translate(0, 0); }
+    50%       { opacity: 0.7;  transform: translate(var(--dx, 30px), var(--dy, -20px)); }
+    66%       { opacity: 0;    transform: translate(calc(var(--dx, 30px) * 1.6), calc(var(--dy, -20px) * 1.6)); }
+    100%      { opacity: 0; }
+  }
+
+  /* --- Lens-flare wipe --------------------------- */
+  .fx-flarewipe .shot-a {
+    z-index: 2;
+    animation: flarewipe-a 4.0s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  }
+  .fx-flarewipe .shot-b {
+    animation: flarewipe-b 4.0s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  }
+  @keyframes flarewipe-a {
+    0%, 30%   { opacity: 1; }
+    44%       { opacity: 0; }
+    56%, 100% { opacity: 0; }
+  }
+  @keyframes flarewipe-b {
+    0%, 44%   { opacity: 0; }
+    56%, 100% { opacity: 1; }
+  }
+  .fx-flarewipe .flare-pass {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 60%;
+    background:
+      radial-gradient(ellipse at 50% 50%, rgba(255,255,255,1) 0%, rgba(255, 220, 160, 0.85) 18%, rgba(255, 200, 130, 0.4) 38%, transparent 70%);
+    transform: translateX(-160%);
+    z-index: 3;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    filter: blur(2px);
+    animation: flarewipe-pass 4.0s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  }
+  @keyframes flarewipe-pass {
+    0%, 14%   { transform: translateX(-160%); opacity: 0; }
+    24%       { opacity: 1; }
+    50%       { transform: translateX(50%); opacity: 1; }
+    78%       { transform: translateX(160%); opacity: 0; }
+    100%      { transform: translateX(160%); opacity: 0; }
+  }
+  .fx-flarewipe .flare-streak-h {
+    position: absolute;
+    top: 50%; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 220, 160, 0.85) 30%, rgba(255, 220, 160, 0.95) 50%, rgba(255, 220, 160, 0.85) 70%, transparent 100%);
+    transform: translateY(-50%);
+    z-index: 3; mix-blend-mode: screen;
+    opacity: 0; filter: blur(1px);
+    animation: flarewipe-streak 4.0s ease-in-out infinite;
+  }
+  @keyframes flarewipe-streak {
+    0%, 28%   { opacity: 0; }
+    44%       { opacity: 1; }
+    58%       { opacity: 0.85; }
+    78%, 100% { opacity: 0; }
+  }
+
+  /* ============================================ */
+  /* Title window transitions — P2.13c (2026-05-04) */
+  /* Inspired by Motion Array "Minimal Title       */
+  /* Transitions" (594722). Type-as-window family.  */
+  /* See notes/motion-array-minimal-title-source.md */
+  /* ============================================ */
+
+  .fx-title-fam .stage { background: #ffffff; }
+  .fx-title-fam .stage > .shot { z-index: 1; }
+  .fx-title-fam .meta-line {
+    position: absolute; left: 50%; bottom: 4%;
+    transform: translateX(-50%);
+    font-family: var(--mono); font-size: 11px; letter-spacing: 1.5px;
+    color: rgba(0,0,0,0.35); text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  /* === Card 1: title-rectangle-window =============== */
+  .fx-title-window .stage { background: #fafafa; }
+  .fx-title-window .tw-frame {
+    position: absolute;
+    top: 18%; left: 14%; right: 14%; bottom: 22%;
+    border: 3px solid var(--accent);
+    overflow: hidden;
+    z-index: 2;
+  }
+  .fx-title-window .tw-frame .shot {
+    position: absolute; inset: 0;
+    z-index: 1;
+  }
+  .fx-title-window .shot-a {
+    animation: title-win-a 4.0s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .fx-title-window .shot-b {
+    animation: title-win-b 4.0s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes title-win-a {
+    0%, 25%   { opacity: 1; }
+    45%       { opacity: 0; }
+    65%       { opacity: 0; }
+    85%, 100% { opacity: 1; }
+  }
+  @keyframes title-win-b {
+    0%, 25%   { opacity: 0; }
+    45%       { opacity: 1; }
+    65%       { opacity: 1; }
+    85%, 100% { opacity: 0; }
+  }
+  .fx-title-window .tw-overlay {
+    position: absolute;
+    left: 14%; right: 14%;
+    top: 26%;
+    text-align: center;
+    font-family: var(--display);
+    font-size: 6.4vw; font-weight: 900; letter-spacing: -0.02em;
+    color: var(--accent);
+    line-height: 0.95;
+    text-transform: uppercase;
+    z-index: 3;
+    pointer-events: none;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+  }
+  .fx-title-window .tw-overlay .l1 { display: block; }
+  .fx-title-window .tw-overlay .l2 { display: block; }
+  .fx-title-window .tw-overlay {
+    animation: title-win-text 4.0s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes title-win-text {
+    0%, 14%  { opacity: 0; transform: translateY(-8px); }
+    24%      { opacity: 1; transform: translateY(0); }
+    78%      { opacity: 1; transform: translateY(0); }
+    88%      { opacity: 0; transform: translateY(-4px); }
+    100%     { opacity: 0; }
+  }
+
+  /* === Card 2: title-blocks-on-colour =============== */
+  .fx-title-blocks .stage { background: #fafafa; }
+  .fx-title-blocks .shot {
+    position: absolute; inset: 12% 8%;
+    z-index: 1;
+    filter: blur(12px) brightness(0.9);
+  }
+  .fx-title-blocks .shot-a {
+    animation: title-blk-a 4.0s linear infinite;
+  }
+  .fx-title-blocks .shot-b {
+    animation: title-blk-b 4.0s linear infinite;
+  }
+  @keyframes title-blk-a {
+    0%, 35%  { opacity: 1; }
+    50%      { opacity: 0; }
+    85%      { opacity: 0; }
+    100%     { opacity: 1; }
+  }
+  @keyframes title-blk-b {
+    0%, 35%  { opacity: 0; }
+    50%      { opacity: 1; }
+    85%      { opacity: 1; }
+    100%     { opacity: 0; }
+  }
+  .fx-title-blocks .tw-stack {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 3;
+  }
+  .fx-title-blocks .tw-stack .blk {
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--display); font-weight: 900;
+    font-size: 5.4vw; letter-spacing: -0.01em;
+    line-height: 1;
+    padding: 8px 22px 12px;
+    text-transform: uppercase;
+    transform: scaleX(0); transform-origin: 50% 50%;
+  }
+  .fx-title-blocks.fx-init .tw-stack .blk { transform: scaleX(0); }
+  .fx-title-blocks .tw-stack .blk:nth-child(1) {
+    animation: title-blk-row1 4.0s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+  .fx-title-blocks .tw-stack .blk:nth-child(2) {
+    animation: title-blk-row2 4.0s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+  @keyframes title-blk-row1 {
+    0%, 4%   { transform: scaleX(0); }
+    18%      { transform: scaleX(1); }
+    78%      { transform: scaleX(1); }
+    92%      { transform: scaleX(0); }
+    100%     { transform: scaleX(0); }
+  }
+  @keyframes title-blk-row2 {
+    0%, 12%  { transform: scaleX(0); }
+    26%      { transform: scaleX(1); }
+    78%      { transform: scaleX(1); }
+    88%      { transform: scaleX(0); }
+    100%     { transform: scaleX(0); }
+  }
+
+  /* === Card 3: title-stencil-cut ==================== */
+  .fx-title-stencil .stage { background: #ffffff; overflow: hidden; }
+  .fx-title-stencil .stencil-defs {
+    position: absolute; width: 0; height: 0;
+  }
+  .fx-title-stencil .stencil-top {
+    position: absolute; top: 0; left: 0; right: 0; height: 50%;
+    overflow: hidden;
+    z-index: 1;
+  }
+  .fx-title-stencil .stencil-top .shot { position: absolute; inset: 0; }
+  .fx-title-stencil .stencil-top .shot-a {
+    animation: title-stn-top-a 4.0s linear infinite;
+  }
+  .fx-title-stencil .stencil-top .shot-b {
+    animation: title-stn-top-b 4.0s linear infinite;
+  }
+  @keyframes title-stn-top-a {
+    0%, 35%  { opacity: 1; }
+    48%      { opacity: 0; }
+    88%      { opacity: 0; }
+    100%     { opacity: 1; }
+  }
+  @keyframes title-stn-top-b {
+    0%, 35%  { opacity: 0; }
+    48%      { opacity: 1; }
+    88%      { opacity: 1; }
+    100%     { opacity: 0; }
+  }
+  .fx-title-stencil .stencil-bottom {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 50%;
+    overflow: hidden;
+    z-index: 1;
+    background: #ffffff;
+  }
+  .fx-title-stencil .stencil-bottom .shot { position: absolute; inset: 0; }
+  .fx-title-stencil .stencil-bottom .shot-cut-a,
+  .fx-title-stencil .stencil-bottom .shot-cut-b {
+    -webkit-mask: url(#title-stencil-text-mask);
+            mask: url(#title-stencil-text-mask);
+    -webkit-mask-mode: alpha;
+            mask-mode: alpha;
+  }
+  .fx-title-stencil .stencil-bottom .shot-cut-a {
+    animation: title-stn-top-a 4.0s linear infinite;
+  }
+  .fx-title-stencil .stencil-bottom .shot-cut-b {
+    animation: title-stn-top-b 4.0s linear infinite;
+  }
+
+  /* === Card 4: title-photo-split ==================== */
+  .fx-title-split .stage { background: #ffffff; overflow: hidden; }
+  .fx-title-split .split-top {
+    position: absolute; top: 0; left: 0; right: 0; height: 50%;
+    overflow: hidden;
+    z-index: 1;
+  }
+  .fx-title-split .split-top .shot {
+    position: absolute; inset: 0;
+  }
+  .fx-title-split .split-top .shot-a {
+    animation: title-split-a 4.0s cubic-bezier(0.6, 0, 0.4, 1) infinite;
+  }
+  .fx-title-split .split-top .shot-b {
+    animation: title-split-b 4.0s cubic-bezier(0.6, 0, 0.4, 1) infinite;
+  }
+  @keyframes title-split-a {
+    0%, 22%  { transform: translateX(0); opacity: 1; }
+    50%      { transform: translateX(-110%); opacity: 1; }
+    100%     { transform: translateX(-110%); opacity: 0; }
+  }
+  @keyframes title-split-b {
+    0%, 22%  { transform: translateX(110%); opacity: 0; }
+    35%      { opacity: 1; }
+    50%      { transform: translateX(0); opacity: 1; }
+    78%      { transform: translateX(0); opacity: 1; }
+    92%      { transform: translateX(-110%); opacity: 1; }
+    100%     { transform: translateX(-110%); opacity: 0; }
+  }
+  .fx-title-split .split-bottom {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 50%;
+    background: #ffffff;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 2;
+  }
+  .fx-title-split .split-headline {
+    font-family: var(--display); font-weight: 900;
+    color: var(--accent);
+    font-size: 4.2vw; letter-spacing: -0.01em;
+    line-height: 1;
+    text-transform: uppercase;
+    text-align: center;
+    animation: title-split-text 4.0s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .fx-title-split .split-headline .l1 { display: block; }
+  .fx-title-split .split-headline .l2 { display: block; margin-top: 6px; }
+  @keyframes title-split-text {
+    0%, 12%  { opacity: 0; letter-spacing: 0.1em; }
+    24%      { opacity: 1; letter-spacing: -0.01em; }
+    78%      { opacity: 1; letter-spacing: -0.01em; }
+    90%      { opacity: 0; letter-spacing: 0.05em; }
+    100%     { opacity: 0; }
+  }
+
+  /* === Card 5: title-frame-grow ================== */
+  .fx-title-grow .stage { background: #ffffff; }
+  .fx-title-grow .grow-frame {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    width: 70%; height: 60%;
+    border: 3px solid var(--accent);
+    overflow: hidden;
+    z-index: 2;
+    animation: title-grow-frame 4.0s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  }
+  @keyframes title-grow-frame {
+    0%, 6%   { transform: translate(-50%, -50%) scale(0); }
+    20%      { transform: translate(-50%, -50%) scale(1); }
+    82%      { transform: translate(-50%, -50%) scale(1); }
+    96%      { transform: translate(-50%, -50%) scale(0); }
+    100%     { transform: translate(-50%, -50%) scale(0); }
+  }
+  .fx-title-grow .grow-frame .shot { position: absolute; inset: 0; }
+  .fx-title-grow .shot-a {
+    animation: title-grow-a 4.0s linear infinite;
+  }
+  .fx-title-grow .shot-b {
+    animation: title-grow-b 4.0s linear infinite;
+  }
+  @keyframes title-grow-a {
+    0%, 35%  { opacity: 1; }
+    50%      { opacity: 0; }
+    100%     { opacity: 0; }
+  }
+  @keyframes title-grow-b {
+    0%, 35%  { opacity: 0; }
+    50%      { opacity: 1; }
+    100%     { opacity: 1; }
+  }
+  .fx-title-grow .grow-text {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: var(--display); font-weight: 900;
+    color: #fff;
+    font-size: 5.4vw; letter-spacing: -0.02em;
+    line-height: 0.95;
+    text-transform: uppercase;
+    text-align: center;
+    z-index: 4;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.45);
+    pointer-events: none;
+    opacity: 0;
+    animation: title-grow-text 4.0s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .fx-title-grow .grow-text .l1 { display: block; }
+  .fx-title-grow .grow-text .l2 { display: block; }
+  @keyframes title-grow-text {
+    0%, 24%  { opacity: 0; }
+    32%      { opacity: 1; }
+    82%      { opacity: 1; }
+    92%      { opacity: 0; }
+    100%     { opacity: 0; }
+  }
+  .fx-title-grow .grow-tagline {
+    position: absolute;
+    left: 50%;
+    bottom: 12%;
+    transform: translateX(-50%);
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+    z-index: 5;
+    overflow: hidden; white-space: nowrap;
+    border-right: 2px solid var(--accent);
+    width: 0;
+    animation: title-grow-tag 4.0s steps(18, end) infinite;
+  }
+  @keyframes title-grow-tag {
+    0%, 36%  { width: 0; border-right-color: var(--accent); }
+    52%      { width: 18ch; border-right-color: var(--accent); }
+    78%      { width: 18ch; border-right-color: transparent; }
+    88%      { width: 0; border-right-color: transparent; }
+    100%     { width: 0; }
+  }
+
+  /* === Card 6: title-shrink-collapse ================ */
+  .fx-title-shrink .stage { background: #ffffff; overflow: hidden; }
+  .fx-title-shrink .shrink-shot-wrap {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.7);
+    width: 70%; height: 60%;
+    overflow: hidden;
+    z-index: 1;
+    animation: title-shrink-shot 4.0s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes title-shrink-shot {
+    0%, 4%   { transform: translate(-50%, -50%) scale(0.7); }
+    32%      { transform: translate(-50%, -50%) scale(1.0); }
+    78%      { transform: translate(-50%, -50%) scale(1.0); }
+    96%      { transform: translate(-50%, -50%) scale(0.7); }
+    100%     { transform: translate(-50%, -50%) scale(0.7); }
+  }
+  .fx-title-shrink .shrink-shot-wrap .shot { position: absolute; inset: 0; }
+  .fx-title-shrink .shot-a {
+    animation: title-shrink-a 4.0s linear infinite;
+  }
+  .fx-title-shrink .shot-b {
+    animation: title-shrink-b 4.0s linear infinite;
+  }
+  @keyframes title-shrink-a {
+    0%, 30%  { opacity: 1; }
+    50%      { opacity: 0; }
+    100%     { opacity: 0; }
+  }
+  @keyframes title-shrink-b {
+    0%, 30%  { opacity: 0; }
+    50%      { opacity: 1; }
+    100%     { opacity: 1; }
+  }
+  .fx-title-shrink .shrink-text {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(2.4);
+    font-family: var(--display); font-weight: 900;
+    color: var(--accent);
+    font-size: 4.6vw; letter-spacing: -0.02em;
+    line-height: 0.95;
+    text-transform: uppercase;
+    text-align: center;
+    z-index: 3;
+    pointer-events: none;
+    animation: title-shrink-text 4.0s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .fx-title-shrink .shrink-text .l1 { display: block; }
+  .fx-title-shrink .shrink-text .l2 { display: block; }
+  @keyframes title-shrink-text {
+    0%, 4%   { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
+    14%      { opacity: 1; }
+    32%      { transform: translate(-50%, -50%) scale(1.0); opacity: 1; }
+    78%      { transform: translate(-50%, -50%) scale(1.0); opacity: 1; }
+    92%      { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
+    100%     { opacity: 0; }
+  }
+
+/* === injected topnav css === */
+/* Grouped-bucket topnav — dropdowns for MOTION / VISUAL / CINEMATOGRAPHY / TOOLS.
+   Extends the existing .topnav base styles (which already define brand + link colours).
+   Selectors scoped to .topnav nav .group — safe to inject into any page. */
+.topnav nav { gap: 24px; }
+.topnav nav .group { position: relative; padding-bottom: 12px; margin-bottom: -12px; }
+.topnav nav .group .group-head {
+  color: var(--muted); text-decoration: none; cursor: default;
+  display: inline-block; padding: 4px 0;
+  text-transform: uppercase; letter-spacing: 0.3px;
+  font-weight: 500;
+}
+.topnav nav .group a.group-head { cursor: pointer; }
+.topnav nav .group:hover .group-head,
+.topnav nav .group:focus-within .group-head { color: var(--text); }
+.topnav nav .group.current .group-head { color: var(--accent); }
+/* Invisible bridge — covers the gap between group-head and dropdown so hover doesn't drop. */
+.topnav nav .group::after {
+  content: ''; position: absolute;
+  top: 100%; left: -16px; right: -16px;
+  height: 14px;
+  pointer-events: auto;
+}
+.topnav nav .group .dropdown {
+  position: absolute; top: calc(100% + 8px); left: -8px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 4px; padding: 6px 0;
+  display: none; flex-direction: column; min-width: 180px;
+  z-index: 100;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.topnav nav .group:hover .dropdown,
+.topnav nav .group:focus-within .dropdown { display: flex; }
+/* Small buffer above the first dropdown item so the mouse can land softly. */
+.topnav nav .group .dropdown::before {
+  content: ''; position: absolute; top: -10px; left: 0; right: 0; height: 10px;
+}
+.topnav nav .group .dropdown a {
+  padding: 8px 16px; color: var(--muted); text-decoration: none;
+  transition: color 120ms, background 120ms;
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.topnav nav .group .dropdown a:hover { color: var(--text); background: rgba(255, 122, 26, 0.06); }
+.topnav nav .group .dropdown a.current { color: var(--accent); }
+/* === end injected topnav css === */
+</style>
+
+  <script src="lib/lazy-media.js"></script>
+  <script src="lib/favorites.js"></script>
+  <script src="_solo.js" defer></script>
+</head>
+<body>
+
+<div class="topnav">
+  <a href="index.html" class="brand"><span class="brand-top">Callum's</span>Effects Library</a>
+  <nav>
+    <div class="group" data-group="search">
+      <a href="search.html" class="group-head">Search</a>
+    </div>
+
+    <div class="group" data-group="icons">
+      <a href="icons.html" class="group-head">Icons</a>
+    </div>
+
+    <div class="group" data-group="text">
+      <a href="text.html" class="group-head">Text</a>
+      <div class="dropdown">
+        <a href="text.html" data-page="text">Text</a>
+        <a href="lower-thirds.html" data-page="lower-thirds">Lower thirds</a>
+        <a href="captions.html" data-page="captions">Captions</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="music">
+      <a href="music.html" class="group-head">Music</a>
+    </div>
+
+    <div class="group" data-group="motion">
+      <span class="group-head">Motion</span>
+      <div class="dropdown">
+        <a href="entrances.html" data-page="entrances">Entrances &amp; exits</a>
+        <a href="mograph.html" data-page="mograph">Mograph</a>
+        <a href="beats.html" data-page="beats">Beats</a>
+        <a href="shapes.html" data-page="shapes">Shapes</a>
+        <a href="logos.html" data-page="logos">Logos</a>
+        <a href="ease-curves.html" data-page="ease-curves">Ease curves</a>
+        <a href="speedometer.html" data-page="speedometer">Speedometer</a>
+        <a href="scribbles.html" data-page="scribbles">Scribbles</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="visual">
+      <span class="group-head">Visual</span>
+      <div class="dropdown">
+        <a href="colours.html" data-page="colours">Colours</a>
+        <a href="atmosphere.html" data-page="atmosphere">Atmosphere</a>
+        <a href="overlays.html" data-page="overlays">Overlays</a>
+        <a href="glitch.html" data-page="glitch">Glitch</a>
+      </div>
+    </div>
+
+    <div class="group current" data-group="cinematography">
+      <span class="group-head">Cinematography</span>
+      <div class="dropdown">
+        <a href="camera-moves.html" data-page="camera-moves">Camera moves</a>
+        <a href="transitions.html" class="current" data-page="transitions">Transitions</a>
+        <a href="lens.html" data-page="lens">Lens</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="tools">
+      <span class="group-head">Tools &amp; assets</span>
+      <div class="dropdown">
+        <a href="common-sfx.html" data-page="common-sfx">Common SFX</a>
+        <a href="sound-fx.html" data-page="sound-fx">Sound FX (AI)</a>
+        <a href="ai-toolchain.html" data-page="ai-toolchain">AI toolchain</a>
+        <a href="templates.html" data-page="templates">Templates</a>
+        <a href="shared-library/browser.html" data-page="browser">Shared library</a>
+        <a href="shared-library/Mograph/preview.html" data-page="mograph-preview">Mograph preview</a>
+        <a href="shared-library/Greenscreen/index.html" data-page="greenscreen">Greenscreen templates</a>
+        <a href="file:///D:/AIIMS/LIGHT%20LEAKS/index.html" data-page="light-leaks-d">Light leaks (D:)</a>
+      </div>
+    </div>
+  </nav>
+</div>
+
+<header class="page-header">
+  <h1>Transitions</h1>
+  <p>Cuts that do a job. Every transition loops A → B → A so you see the effect land and unwind. Whip pans for energy, luma wipes for editorial polish, iris for drama, dip-to-white for time jumps. Avoid stock liquid transitions un-retimed and un-recoloured — they're the #1 AI slop signal. Retime, recolour, or build your own.</p>
+</header>
+
+<section class="group">
+  <h2>Hit transitions</h2>
+  <div class="grid">
+
+    <div class="demo fx-hit-punch" id="hit-punch">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Hit punch</div>
+        <div class="desc">Hard scale punch with frame-shake decay. Heavier than zoom-punch — the shake holds for 3 frames after impact.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-hit-shake-vert" id="hit-shake-vert">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Hit shake — vertical</div>
+        <div class="desc">Pure Y-axis earthquake. Cut hides inside the worst frame.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-hit-shake-horiz" id="hit-shake-horiz">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Hit shake — horizontal</div>
+        <div class="desc">Pure X-axis ratchet. Reads sharper than vertical because eyes track left-right motion as faster.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-hit-shake-roll" id="hit-shake-roll">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Hit shake — roll</div>
+        <div class="desc">Wobble. Translate plus rotation oscillation. Reads like a handheld camera taking the punch.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-hit-rgb-kick" id="hit-rgb-kick">
+      <svg class="defs" aria-hidden="true" style="position:absolute;width:0;height:0">
+        <defs>
+          <filter id="hit-rgb-kick-filter" x="-15%" y="-15%" width="130%" height="130%">
+            <feColorMatrix in="SourceGraphic" type="matrix"
+              values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="red"/>
+            <feColorMatrix in="SourceGraphic" type="matrix"
+              values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="green"/>
+            <feColorMatrix in="SourceGraphic" type="matrix"
+              values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="blue"/>
+            <feOffset in="red" result="redOff">
+              <animate attributeName="dx"
+                values="0;0;10;3;0;0;0;10;3;0;0"
+                keyTimes="0;0.25;0.27;0.31;0.35;0.5;0.74;0.77;0.81;0.85;1"
+                dur="3.8s" repeatCount="indefinite"/>
+            </feOffset>
+            <feOffset in="blue" result="blueOff">
+              <animate attributeName="dx"
+                values="0;0;-10;-3;0;0;0;-10;-3;0;0"
+                keyTimes="0;0.25;0.27;0.31;0.35;0.5;0.74;0.77;0.81;0.85;1"
+                dur="3.8s" repeatCount="indefinite"/>
+            </feOffset>
+            <feBlend in="redOff" in2="green" mode="screen" result="rg"/>
+            <feBlend in="rg" in2="blueOff" mode="screen"/>
+          </filter>
+        </defs>
+      </svg>
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Hit RGB kick</div>
+        <div class="desc">Pure chromatic channel split. Red shifts right, blue shifts left, green holds. Cut hides inside the split chaos.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-hit-spin" id="hit-spin">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Hit spin</div>
+        <div class="desc">60° rotation kick at the cut, motion blur masks the swap. Frame shake decays out.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-hit-spin-rgb" id="hit-spin-rgb">
+      <svg class="defs" aria-hidden="true" style="position:absolute;width:0;height:0">
+        <defs>
+          <filter id="hit-spin-rgb-filter" x="-15%" y="-15%" width="130%" height="130%">
+            <feColorMatrix in="SourceGraphic" type="matrix"
+              values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="red"/>
+            <feColorMatrix in="SourceGraphic" type="matrix"
+              values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="green"/>
+            <feColorMatrix in="SourceGraphic" type="matrix"
+              values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="blue"/>
+            <feOffset in="red" result="redOff">
+              <animate attributeName="dx"
+                values="0;0;16;5;0;0;0;16;5;0;0"
+                keyTimes="0;0.22;0.27;0.32;0.36;0.5;0.72;0.77;0.82;0.86;1"
+                dur="3.8s" repeatCount="indefinite"/>
+            </feOffset>
+            <feOffset in="blue" result="blueOff">
+              <animate attributeName="dx"
+                values="0;0;-16;-5;0;0;0;-16;-5;0;0"
+                keyTimes="0;0.22;0.27;0.32;0.36;0.5;0.72;0.77;0.82;0.86;1"
+                dur="3.8s" repeatCount="indefinite"/>
+            </feOffset>
+            <feBlend in="redOff" in2="green" mode="screen" result="rg"/>
+            <feBlend in="rg" in2="blueOff" mode="screen"/>
+          </filter>
+        </defs>
+      </svg>
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Hit spin + RGB</div>
+        <div class="desc">90° rotation combined with heavy chromatic split. The most aggressive of the rotation hits.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-hit-glitch" id="hit-glitch">
+      <svg class="defs" aria-hidden="true" style="position:absolute;width:0;height:0">
+        <defs>
+          <filter id="hit-glitch-filter" x="-10%" y="-10%" width="120%" height="120%">
+            <feColorMatrix in="SourceGraphic" type="matrix"
+              values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="red"/>
+            <feColorMatrix in="SourceGraphic" type="matrix"
+              values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="green"/>
+            <feColorMatrix in="SourceGraphic" type="matrix"
+              values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="blue"/>
+            <feOffset in="red" result="redOff">
+              <animate attributeName="dx"
+                values="0;0;14;-6;0;0;0;14;-6;0;0"
+                keyTimes="0;0.24;0.27;0.30;0.34;0.5;0.74;0.77;0.80;0.84;1"
+                dur="3.8s" repeatCount="indefinite"/>
+              <animate attributeName="dy"
+                values="0;0;3;-1;0;0;0;3;-1;0;0"
+                keyTimes="0;0.24;0.27;0.30;0.34;0.5;0.74;0.77;0.80;0.84;1"
+                dur="3.8s" repeatCount="indefinite"/>
+            </feOffset>
+            <feOffset in="blue" result="blueOff">
+              <animate attributeName="dx"
+                values="0;0;-14;6;0;0;0;-14;6;0;0"
+                keyTimes="0;0.24;0.27;0.30;0.34;0.5;0.74;0.77;0.80;0.84;1"
+                dur="3.8s" repeatCount="indefinite"/>
+            </feOffset>
+            <feBlend in="redOff" in2="green" mode="screen" result="rg"/>
+            <feBlend in="rg" in2="blueOff" mode="screen"/>
+          </filter>
+        </defs>
+      </svg>
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        <div class="scanlines"></div>
+      </div>
+      <div class="meta">
+        <div class="title">Hit glitch</div>
+        <div class="desc">Chromatic split + scanlines + frame shake. For moments where the cut should feel like the edit broke the signal.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-hit-stretch" id="hit-stretch">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Hit stretch</div>
+        <div class="desc">Horizontal squeeze. Frame compresses to a thin slice and pops back. Hard sideways punch.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-hit-squash" id="hit-squash">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Hit squash</div>
+        <div class="desc">Vertical squash. Frame collapses to a thin band. Pairs with a sub-bass hit.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-hit-bounce" id="hit-bounce">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Hit bounce</div>
+        <div class="desc">Anticipation drop. Frame lifts up, slams down, bounce-and-settle. Vertical drop hit.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-hit-jelly" id="hit-jelly">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Hit jelly</div>
+        <div class="desc">Jelly-roll wobble. Scale oscillation overshoots, undershoots, settles. Playful, bouncy beat.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-hit-flash-impact" id="hit-flash-impact">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+        <div class="overlay"></div>
+      </div>
+      <div class="meta">
+        <div class="title">Hit flash impact</div>
+        <div class="desc">Heavier than the standard flash. Radial bloom holds for 4 frames, decays through frame shake. Real impact, not a strobe.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-hit-anamorphic" id="hit-anamorphic">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        <div class="streak"></div>
+      </div>
+      <div class="meta">
+        <div class="title">Hit anamorphic</div>
+        <div class="desc">Horizontal lens-flare streak rips across the frame at the cut. Cinematic action-trailer feel.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-hit-invert" id="hit-invert">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Hit invert</div>
+        <div class="desc">Single-frame colour invert at impact. Held shake. Subtle but reads as a hard cut, especially with sub-bass.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-hit-distortion-zoom" id="hit-distortion-zoom">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Hit distortion zoom</div>
+        <div class="desc">Heavy radial blur smear over a scale punch. Distortion masks the cut. Sells "we just punched through this scene".</div>
+      </div>
+    </div>
+
+    <div class="demo fx-hit-wave" id="hit-wave">
+      <svg class="defs" aria-hidden="true" style="position:absolute;width:0;height:0">
+        <defs>
+          <filter id="hit-wave-filter" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="9" result="noise">
+              <animate attributeName="baseFrequency"
+                values="0.005;0.005;0.025;0.005;0.005;0.005;0.025;0.005;0.005"
+                keyTimes="0;0.22;0.27;0.32;0.5;0.72;0.77;0.82;1"
+                dur="3.8s" repeatCount="indefinite"/>
+            </feTurbulence>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="0">
+              <animate attributeName="scale"
+                values="0;0;60;0;0;0;60;0;0"
+                keyTimes="0;0.24;0.27;0.30;0.5;0.74;0.77;0.80;1"
+                dur="3.8s" repeatCount="indefinite"/>
+            </feDisplacementMap>
+          </filter>
+        </defs>
+      </svg>
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Hit wave</div>
+        <div class="desc">Turbulence displacement at the cut. Wave distortion hides the swap. Heavier render — keep for moments that earn it.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="group">
+  <h2>Energetic</h2>
+  <div class="grid">
+
+    <div class="demo fx-whip" id="whip-pan">
+      <svg class="defs" aria-hidden="true">
+        <defs>
+          <filter id="whip-blur" x="-10%" y="-10%" width="120%" height="120%">
+            <feGaussianBlur stdDeviation="0 0">
+              <animate attributeName="stdDeviation"
+                values="0 0; 0 0; 55 0; 95 0; 55 0; 0 0; 0 0; 55 0; 95 0; 55 0; 0 0; 0 0"
+                keyTimes="0; 0.18; 0.235; 0.265; 0.30; 0.35; 0.65; 0.705; 0.735; 0.77; 0.82; 1"
+                dur="3.8s"
+                repeatCount="indefinite"/>
+            </feGaussianBlur>
+          </filter>
+        </defs>
+      </svg>
+      <div class="stage">
+        <div class="stage-inner">
+          <div class="shot vid"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+          <div class="shot vid"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        </div>
+      </div>
+      <div class="meta">
+        <div class="title">Whip pan</div>
+        <div class="desc">SVG directional motion blur smears horizontally at peak velocity. Seamless — no visible seam between panels.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-slide" id="directional-slide">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Directional slide</div>
+        <div class="desc">Push transition, B shoves A off-screen.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-zoom" id="zoom-punch">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Zoom punch</div>
+        <div class="desc">Scale into A, scale out on B. Beat-synced.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-warp" id="warp-speed-zoom">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        <div class="streak"></div>
+        <div class="flash"></div>
+      </div>
+      <div class="meta">
+        <div class="title">Warp-speed zoom</div>
+        <div class="desc">Radial star-streaks stretch outward + scale ramp + impact flash. Hyperspace punch-through.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-shake" id="shake-cut">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Shake cut</div>
+        <div class="desc">3-frame handheld jolt, cut lands inside the shake. Impact, not dissolve.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-flash" id="flash">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        <div class="overlay"></div>
+      </div>
+      <div class="meta">
+        <div class="title">Flash frame</div>
+        <div class="desc">1–2 frame pure-white stab hides the cut. Punchy, no ease.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-cross" id="cross-zoom">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Cross-zoom</div>
+        <div class="desc">A zooms up and blurs, B zooms down from big. Double-engine pop.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="group">
+  <h2>Editorial</h2>
+  <div class="grid">
+
+    <div class="demo fx-luma" id="luma-wipe">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Luma wipe</div>
+        <div class="desc">Gradient mask sweep. Soft diagonal reveal.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-slice" id="slice-reveal">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+        <div class="shot-b">
+          <div class="slice-band"></div>
+          <div class="slice-band"></div>
+          <div class="slice-band"></div>
+          <div class="slice-band"></div>
+          <div class="slice-band"></div>
+          <div class="slice-band"></div>
+        </div>
+      </div>
+      <div class="meta">
+        <div class="title">Slice reveal</div>
+        <div class="desc">Six bands stagger across — editorial, kinetic.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-iris" id="iris-wipe">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Iris wipe</div>
+        <div class="desc">Clip-path circle grows from centre. Cinematic, classic.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-shape" id="match-cut-frame">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Match-cut frame</div>
+        <div class="desc">Shape clip-path grows from zero. Template — swap in any silhouette.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="group">
+  <h2>Title window transitions</h2>
+  <div class="grid">
+
+    <div class="demo fx-title-fam fx-title-window" id="title-rectangle-window">
+      <div class="stage">
+        <div class="tw-frame">
+          <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+          <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        </div>
+        <div class="tw-overlay">
+          <span class="l1">MODERN</span>
+          <span class="l2">DESIGN</span>
+        </div>
+      </div>
+      <div class="meta">
+        <div class="title">Title rectangle window</div>
+        <div class="desc">Bold orange title sits over a bordered rectangle; the photo lives inside the rectangle and swaps A → B as the wipe. Type holds throughout. Inspired by Motion Array Minimal Title Transitions (594722).</div>
+      </div>
+    </div>
+
+    <div class="demo fx-title-fam fx-title-blocks" id="title-blocks-on-colour">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        <div class="tw-stack">
+          <div class="blk">MODERN</div>
+          <div class="blk">DESIGN</div>
+        </div>
+      </div>
+      <div class="meta">
+        <div class="title">Title blocks on colour</div>
+        <div class="desc">Two stacked accent-coloured blocks scaleX in from centre with a stagger, white type on top. Shot crossfades behind, blurred so the type stays readable. Editorial / corporate flavour.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-title-fam fx-title-stencil" id="title-stencil-cut">
+      <svg class="stencil-defs" aria-hidden="true">
+        <defs>
+          <mask id="title-stencil-text-mask">
+            <rect width="100%" height="100%" fill="black"/>
+            <text x="50%" y="44%" font-family="Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif" font-size="68" font-weight="900" text-anchor="middle" fill="white">MODERN</text>
+            <text x="50%" y="82%" font-family="Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif" font-size="68" font-weight="900" text-anchor="middle" fill="white">DESIGN</text>
+          </mask>
+        </defs>
+      </svg>
+      <div class="stage">
+        <div class="stencil-top">
+          <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+          <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        </div>
+        <div class="stencil-bottom">
+          <div class="shot vid shot-cut-a"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+          <div class="shot vid shot-cut-b"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        </div>
+      </div>
+      <div class="meta">
+        <div class="title">Title stencil cut</div>
+        <div class="desc">Top half full-bleed footage; bottom half white card with the type stencilled out — the same footage shows through the letterforms. SVG mask drives the cut. A → B swaps in both halves simultaneously.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-title-fam fx-title-split" id="title-photo-split">
+      <div class="stage">
+        <div class="split-top">
+          <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+          <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        </div>
+        <div class="split-bottom">
+          <div class="split-headline">
+            <span class="l1">MODERN</span>
+            <span class="l2">DESIGN</span>
+          </div>
+        </div>
+      </div>
+      <div class="meta">
+        <div class="title">Title photo split</div>
+        <div class="desc">Top half video, bottom half white card with type. Top shot slides off left as shot B slides in from right; type breathes in / out via letter-spacing easing. Editorial magazine feel.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-title-fam fx-title-grow" id="title-frame-grow">
+      <div class="stage">
+        <div class="grow-frame">
+          <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+          <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        </div>
+        <div class="grow-text">
+          <span class="l1">MODERN</span>
+          <span class="l2">DESIGN</span>
+        </div>
+        <div class="grow-tagline">PRESETS · 2026 EDITION</div>
+      </div>
+      <div class="meta">
+        <div class="title">Title frame grow</div>
+        <div class="desc">Bordered rectangle scales 0 → 1 with overshoot, holds, then shrinks back. Type fades in inside the frame; sub-tagline types in via steps() — editorial nod to the typewriter pattern. Photo swap mid-cycle.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-title-fam fx-title-shrink" id="title-shrink-collapse">
+      <div class="stage">
+        <div class="shrink-shot-wrap">
+          <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+          <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+        </div>
+        <div class="shrink-text">
+          <span class="l1">MODERN</span>
+          <span class="l2">DESIGN</span>
+        </div>
+      </div>
+      <div class="meta">
+        <div class="title">Title shrink collapse</div>
+        <div class="desc">Reverse-action variant: type starts huge filling the frame, shrinks to its resting size while the photo behind expands from 70% to full. Cinematic punctuation; not in the source pack — added for rhythm variety.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="group">
+  <h2>Cinematic</h2>
+  <div class="grid">
+
+    <div class="demo fx-white" id="dip-to-white">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        <div class="overlay"></div>
+      </div>
+      <div class="meta">
+        <div class="title">Dip to white</div>
+        <div class="desc">Time jump, memory, reveal. Hold the peak 1–2 frames.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-black" id="dip-to-black">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        <div class="overlay"></div>
+      </div>
+      <div class="meta">
+        <div class="title">Dip to black</div>
+        <div class="desc">End of chapter. Weight, gravity. Don't overuse.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-morph" id="morph-cut">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Morph cut</div>
+        <div class="desc">Crossfade + micro scale + slight blur. Hides jump cuts.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-leak" id="light-leak">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        <div class="overlay"><video autoplay muted loop playsinline src="images/light-leak-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Light leak</div>
+        <div class="desc">Real Kling light-leak footage, screen blend. Analogue, nostalgic, film-burn warmth.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-liquid" id="liquid-wipe">
+      <svg class="defs" aria-hidden="true">
+        <defs>
+          <filter id="liquid-filter" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="2" seed="4" result="noise">
+              <animate attributeName="baseFrequency" values="0.012;0.024;0.012" dur="4.2s" repeatCount="indefinite" />
+            </feTurbulence>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="35" />
+          </filter>
+        </defs>
+      </svg>
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Liquid wipe</div>
+        <div class="desc">SVG turbulence displacement — organic, gooey reveal.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-shatter" id="shatter">
+      <div class="stage">
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        <div class="shard s1"></div>
+        <div class="shard s2"></div>
+        <div class="shard s3"></div>
+        <div class="shard s4"></div>
+        <div class="shard s5"></div>
+        <svg class="cracks" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <g fill="none">
+            <line x1="50" y1="45" x2="12" y2="4"/>
+            <line x1="50" y1="45" x2="55" y2="-2"/>
+            <line x1="50" y1="45" x2="92" y2="8"/>
+            <line x1="50" y1="45" x2="104" y2="38"/>
+            <line x1="50" y1="45" x2="104" y2="82"/>
+            <line x1="50" y1="45" x2="66" y2="104"/>
+            <line x1="50" y1="45" x2="-4" y2="104"/>
+            <line x1="50" y1="45" x2="-4" y2="38"/>
+            <line x1="28" y1="22" x2="40" y2="14"/>
+            <line x1="70" y1="20" x2="84" y2="28"/>
+            <line x1="66" y1="62" x2="82" y2="70"/>
+            <line x1="34" y1="62" x2="22" y2="78"/>
+          </g>
+        </svg>
+        <div class="flash"></div>
+      </div>
+      <div class="meta">
+        <div class="title">Shatter</div>
+        <div class="desc">Crack lines flash, white impact, then shards radiate from the break point and fly off-frame. Mirror-break reveal.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-ink" id="ink-bleed">
+      <svg class="defs" aria-hidden="true">
+        <defs>
+          <filter id="ink-filter" x="-30%" y="-30%" width="160%" height="160%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="3" seed="9" result="noise">
+              <animate attributeName="baseFrequency" values="0.014;0.024;0.014" dur="4.4s" repeatCount="indefinite" />
+            </feTurbulence>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="45" />
+          </filter>
+        </defs>
+      </svg>
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+      </div>
+      <div class="meta">
+        <div class="title">Ink bleed</div>
+        <div class="desc">Turbulence-distorted circle mask. Watercolour seeps across paper.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-smoke" id="smoke-dissolve">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        <div class="smoke"></div>
+        <div class="smoke layer-2"></div>
+      </div>
+      <div class="meta">
+        <div class="title">Smoke dissolve</div>
+        <div class="desc">Turbulence cloud rolls across, cut hides under the peak. Drifts off to reveal B.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-flip" id="3d-card-flip">
+      <div class="stage">
+        <div class="card3d">
+          <div class="face front">Front</div>
+          <div class="face back">Flipped</div>
+        </div>
+      </div>
+      <div class="meta">
+        <div class="title">3D card flip</div>
+        <div class="desc">CSS perspective + transform-style: preserve-3d. Two faces, back pre-rotated 180°. Reveal cards, before/after toggles, stat flips. Hover the card to play.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="group">
+  <h2>Smooth dissolves (P2.13b additions)</h2>
+  <div class="grid">
+
+    <div class="demo fx-bokeh" id="bokeh-defocus">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        <div class="bokeh-glow"></div>
+      </div>
+      <div class="meta">
+        <div class="title">Bokeh defocus dissolve</div>
+        <div class="desc">Both shots blur heavily through the cut + brightness lift, dissolve happens in the soft state, then sharpen back. Different from morph-cut (which holds focus). Cinematic memory / dream beat.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-mosaic" id="pixel-mosaic-dissolve">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        <div class="mosaic-grid" id="mosaic-grid"></div>
+      </div>
+      <div class="meta">
+        <div class="title">Pixel mosaic dissolve</div>
+        <div class="desc">12×7 grid of black tiles flicker in randomised order to occlude the cut, then back out to reveal B. Reads as low-res dissolve / digital fade. AE: Mosaic effect with random opacity offsets per tile.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-scatter" id="particle-scatter-dissolve">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/desert-road-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        <div class="scatter-particles" id="scatter-particles"></div>
+      </div>
+      <div class="meta">
+        <div class="title">Particle scatter dissolve</div>
+        <div class="desc">~50 luminous particles bloom out from the frame at the cut point, both shots blur and crossfade behind them. Different from smoke-dissolve (which is turbulence cloud). AE: Trapcode Particular emitter on the cut frame.</div>
+      </div>
+    </div>
+
+    <div class="demo fx-flarewipe" id="lens-flare-wipe">
+      <div class="stage">
+        <div class="shot vid shot-a"><video autoplay muted loop playsinline src="images/portrait-moody-clip-v1.mp4"></video></div>
+        <div class="shot vid shot-b"><video autoplay muted loop playsinline src="images/neon-alley-clip-v1.mp4"></video></div>
+        <div class="flare-streak-h"></div>
+        <div class="flare-pass"></div>
+      </div>
+      <div class="meta">
+        <div class="title">Lens-flare wipe</div>
+        <div class="desc">Hot anamorphic flare passes left-to-right across the frame; horizontal streak peaks at centre, hides the cut. Different from light-leak (ambient overlay). Premium / product-launch / sport.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  Stock transitions from plugin packs are the fastest way to look like a template. If you use one, retime it, recolour it, trim the default stingers. Better still — build from primitives: a mask sweep, a clip-path, a translate with blur. Every transition should do a job. If it doesn't, it's a cut.
+</footer>
+
+<script>
+  // Click a tile → open it fullscreen. Click again (or press Esc) → exit.
+  document.querySelectorAll('.demo').forEach(demo => {
+    demo.addEventListener('click', () => {
+      if (document.fullscreenElement === demo) {
+        document.exitFullscreen();
+      } else {
+        if (document.fullscreenElement) document.exitFullscreen();
+        demo.requestFullscreen().catch(() => {});
+      }
+    });
+  });
+
+  // ================================================
+  // P2.13b smooth-dissolves builders
+  // ================================================
+
+  // Pixel mosaic dissolve — populate 12×7 grid with random delay order
+  (function buildMosaic() {
+    const host = document.getElementById('mosaic-grid');
+    if (!host) return;
+    const COUNT = 12 * 7; // 84 tiles
+    const order = Array.from({ length: COUNT }, (_, i) => i);
+    // Fisher–Yates shuffle so the tile fade order looks random.
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    for (let i = 0; i < COUNT; i++) {
+      const t = document.createElement('div');
+      t.className = 'tile';
+      // Use shuffled index so the staggered delay is randomised but stable per session.
+      t.style.setProperty('--mi', order[i]);
+      host.appendChild(t);
+    }
+  })();
+
+  // Particle scatter dissolve — spawn ~50 particles around centre with random vectors
+  (function buildScatter() {
+    const host = document.getElementById('scatter-particles');
+    if (!host) return;
+    const COUNT = 50;
+    for (let i = 0; i < COUNT; i++) {
+      const p = document.createElement('div');
+      p.className = 'sp';
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 60 + Math.random() * 90;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist;
+      p.style.setProperty('--x', (40 + Math.random() * 20) + '%');
+      p.style.setProperty('--y', (40 + Math.random() * 20) + '%');
+      p.style.setProperty('--dx', dx.toFixed(1) + 'px');
+      p.style.setProperty('--dy', dy.toFixed(1) + 'px');
+      p.style.setProperty('--delay', (Math.random() * 0.2).toFixed(2) + 's');
+      host.appendChild(p);
+    }
+  })();
+</script>
+  </body>
+</html>

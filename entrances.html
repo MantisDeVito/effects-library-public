@@ -1,0 +1,1380 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Entrances &amp; exits · Callum's Effects Library</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --card: #141414;
+    --border: #262626;
+    --border-hover: #3a3a3a;
+    --text: #ececec;
+    --muted: #888;
+    --accent: #ff7a1a;
+    --display: 'Impact', 'Haettenschweiler', 'Arial Narrow Bold', sans-serif;
+    --mono: 'SF Mono', Menlo, Consolas, monospace;
+    --paper: #FBF7EE;
+    --navy: #0B1D3A;
+    --pink: #FF3D7F;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: 32px 40px 80px; max-width: 1480px; margin: 0 auto;
+  }
+
+  /* === topnav (inserted by _apply-topnav.mjs) === */
+  .topnav {
+    display: flex; align-items: flex-end; gap: 32px;
+    padding-bottom: 20px; border-bottom: 1px solid var(--border);
+    margin-bottom: 28px; flex-wrap: wrap;
+  }
+  .topnav .brand {
+    font-family: var(--display); font-size: 18px;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text); text-decoration: none; white-space: nowrap;
+    display: inline-block; line-height: 1.1;
+  }
+  .topnav .brand .brand-top {
+    display: block; font-size: 12px; letter-spacing: 1.5px;
+    color: var(--accent); margin-bottom: 2px;
+  }
+  .topnav .brand:hover { color: var(--accent); }
+  .topnav nav {
+    display: flex; gap: 20px; font-size: 13px;
+    letter-spacing: 0.5px; text-transform: uppercase; flex-wrap: wrap;
+    align-items: flex-end;
+  }
+  .topnav nav .group { position: relative; }
+  .topnav nav .group-head { color: var(--muted); text-decoration: none; transition: color 120ms; cursor: pointer; }
+  .topnav nav .group:hover .group-head { color: var(--text); }
+  .topnav nav .group-head.current,
+  .topnav nav .group.current .group-head { color: var(--accent); }
+  .topnav nav .dropdown {
+    position: absolute; top: 100%; left: 0; padding-top: 8px;
+    display: none; flex-direction: column; min-width: 180px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 4px; z-index: 100;
+  }
+  .topnav nav .group:hover .dropdown { display: flex; }
+  .topnav nav .dropdown a {
+    padding: 8px 14px; color: var(--muted); text-decoration: none;
+    font-size: 12px; transition: all 120ms;
+  }
+  .topnav nav .dropdown a:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .topnav nav .dropdown a.current { color: var(--accent); }
+
+  header.page-header {
+    padding-bottom: 24px; margin-bottom: 40px;
+    display: flex; flex-wrap: wrap; align-items: flex-end;
+    gap: 24px; justify-content: space-between;
+  }
+  header.page-header h1 {
+    font-family: var(--display); font-size: 44px;
+    margin: 0 0 8px; letter-spacing: -0.5px; text-transform: uppercase;
+  }
+  header.page-header p { margin: 0; color: var(--muted); max-width: 580px; }
+
+  section { margin-bottom: 56px; }
+  section h2 {
+    font-family: var(--display); font-size: 24px;
+    text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px;
+  }
+  section > p.intro { color: var(--muted); max-width: 780px; margin: 0 0 24px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  .demo {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 4px; padding: 18px;
+    transition: border-color 120ms;
+    position: relative;
+  }
+  .demo:hover { border-color: var(--border-hover); }
+  .stage {
+    aspect-ratio: 16 / 9;
+    background: #050505; border-radius: 3px;
+    position: relative; overflow: hidden; margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .demo h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; letter-spacing: 0.3px; }
+  .demo p.caption {
+    margin: 0; color: var(--muted); font-size: 13px;
+    font-family: var(--mono); line-height: 1.5;
+  }
+
+  /* shared demo object — a navy chip with $1M label */
+  .chip {
+    background: var(--paper);
+    color: var(--navy);
+    font-weight: 900;
+    font-size: 32px;
+    font-family: var(--display);
+    letter-spacing: 2px;
+    padding: 12px 28px;
+    border-radius: 4px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+    display: inline-block;
+    line-height: 1;
+  }
+  .chip.small { font-size: 22px; padding: 8px 16px; }
+  .chip.pink { background: var(--pink); color: #fff; }
+
+  /* =====================================================
+     SHARED LOOP TIMING: 3.6s
+       0.00 – 0.45  entrance
+       0.45 – 2.40  hold
+       2.40 – 2.90  exit (default fade)
+       2.90 – 3.60  reset / invisible
+     =====================================================  */
+
+  /* Default fade exit used by entry cards */
+  @keyframes default-fade-out {
+    0%, 65%   { opacity: 1; }
+    78%       { opacity: 0; transform: scale(0.95); }
+    100%      { opacity: 0; }
+  }
+
+  /* === Section 1 — Punch entries === */
+
+  /* Stamp: starts huge in front of camera, slams down to size in ONE smooth motion. */
+  .e-stamp .chip {
+    animation: stamp-in 3.6s cubic-bezier(0.18, 0.7, 0.25, 1) infinite;
+  }
+  @keyframes stamp-in {
+    /* Single accelerating shrink: scale 14 → 1.3 in one cubic-bezier ease-out. No mid-keyframe.
+       Visible from frame 0 (no fade), so the slam reads as a single rapid arrival. */
+    0%    { opacity: 1; transform: scale(14); filter: blur(10px); }
+    10%   { opacity: 1; transform: scale(1.35); filter: blur(0); }
+    /* Settle: squash → overshoot → rest */
+    13%   { transform: scale(0.86); }
+    16%   { transform: scale(1.06); }
+    19%   { transform: scale(1); }
+    65%   { opacity: 1; transform: scale(1); }
+    78%   { opacity: 0; transform: scale(0.95); }
+    100%  { opacity: 0; }
+  }
+
+  /* Slam: fast hammer-slam from chosen direction with stage-shake on impact */
+  .e-slam[data-dir="top"]    .chip { animation: slam-top    3.6s cubic-bezier(0.6, 0, 0.3, 1) infinite; }
+  .e-slam[data-dir="bottom"] .chip { animation: slam-bottom 3.6s cubic-bezier(0.6, 0, 0.3, 1) infinite; }
+  .e-slam[data-dir="left"]   .chip { animation: slam-left   3.6s cubic-bezier(0.6, 0, 0.3, 1) infinite; }
+  .e-slam[data-dir="right"]  .chip { animation: slam-right  3.6s cubic-bezier(0.6, 0, 0.3, 1) infinite; }
+  @keyframes slam-top {
+    0%    { opacity: 0; transform: translateY(-400px) scale(1.5); filter: blur(6px); }
+    1%    { opacity: 1; }
+    7%    { transform: translateY(0) scale(1.4); filter: blur(0); }
+    9%    { transform: scale(0.82); }
+    11%   { transform: scale(1.08); }
+    13%   { transform: scale(1); }
+    65%   { opacity: 1; transform: scale(1); }
+    78%   { opacity: 0; }
+    100%  { opacity: 0; }
+  }
+  @keyframes slam-bottom {
+    0%    { opacity: 0; transform: translateY(400px) scale(1.5); filter: blur(6px); }
+    1%    { opacity: 1; }
+    7%    { transform: translateY(0) scale(1.4); filter: blur(0); }
+    9%    { transform: scale(0.82); }
+    11%   { transform: scale(1.08); }
+    13%   { transform: scale(1); }
+    65%   { opacity: 1; transform: scale(1); }
+    78%   { opacity: 0; }
+    100%  { opacity: 0; }
+  }
+  @keyframes slam-left {
+    0%    { opacity: 0; transform: translateX(-500px) scale(1.5); filter: blur(6px); }
+    1%    { opacity: 1; }
+    7%    { transform: translateX(0) scale(1.4); filter: blur(0); }
+    9%    { transform: scale(0.82); }
+    11%   { transform: scale(1.08); }
+    13%   { transform: scale(1); }
+    65%   { opacity: 1; transform: scale(1); }
+    78%   { opacity: 0; }
+    100%  { opacity: 0; }
+  }
+  @keyframes slam-right {
+    0%    { opacity: 0; transform: translateX(500px) scale(1.5); filter: blur(6px); }
+    1%    { opacity: 1; }
+    7%    { transform: translateX(0) scale(1.4); filter: blur(0); }
+    9%    { transform: scale(0.82); }
+    11%   { transform: scale(1.08); }
+    13%   { transform: scale(1); }
+    65%   { opacity: 1; transform: scale(1); }
+    78%   { opacity: 0; }
+    100%  { opacity: 0; }
+  }
+  .e-slam .stage > .chip-wrap {
+    animation: slam-shake 3.6s linear infinite;
+  }
+  @keyframes slam-shake {
+    0%, 6%   { transform: translate(0, 0); }
+    7%       { transform: translate(3px, -4px); }
+    8%       { transform: translate(-4px, 3px); }
+    9%       { transform: translate(3px, 4px); }
+    10%      { transform: translate(-2px, -2px); }
+    11%      { transform: translate(1px, 1px); }
+    12%      { transform: translate(0, 0); }
+    100%     { transform: translate(0, 0); }
+  }
+
+  /* Bounce: directional overshoot with squash/stretch (default: from bottom) */
+  .e-bounce .chip { transform-origin: center bottom; }
+  .e-bounce[data-dir="bottom"] .chip { animation: bounce-bottom 3.6s cubic-bezier(0.28, 0.84, 0.42, 1) infinite; }
+  .e-bounce[data-dir="top"]    .chip { animation: bounce-top    3.6s cubic-bezier(0.28, 0.84, 0.42, 1) infinite; transform-origin: center top; }
+  .e-bounce[data-dir="left"]   .chip { animation: bounce-left   3.6s cubic-bezier(0.28, 0.84, 0.42, 1) infinite; transform-origin: left center; }
+  .e-bounce[data-dir="right"]  .chip { animation: bounce-right  3.6s cubic-bezier(0.28, 0.84, 0.42, 1) infinite; transform-origin: right center; }
+  @keyframes bounce-bottom {
+    0%    { opacity: 0; transform: translateY(120px) scaleY(0.6); }
+    8%    { opacity: 1; }
+    14%   { transform: translateY(-12px) scaleY(1.08); }
+    18%   { transform: translateY(0) scaleY(0.92); }
+    22%   { transform: translateY(0) scaleY(1.04); }
+    26%   { transform: translateY(0) scaleY(1); }
+    65%   { opacity: 1; transform: translateY(0); }
+    78%   { opacity: 0; }
+    100%  { opacity: 0; }
+  }
+  @keyframes bounce-top {
+    0%    { opacity: 0; transform: translateY(-120px) scaleY(0.6); }
+    8%    { opacity: 1; }
+    14%   { transform: translateY(12px) scaleY(1.08); }
+    18%   { transform: translateY(0) scaleY(0.92); }
+    22%   { transform: translateY(0) scaleY(1.04); }
+    26%   { transform: translateY(0) scaleY(1); }
+    65%   { opacity: 1; transform: translateY(0); }
+    78%   { opacity: 0; }
+    100%  { opacity: 0; }
+  }
+  @keyframes bounce-left {
+    0%    { opacity: 0; transform: translateX(-200px) scaleX(0.6); }
+    8%    { opacity: 1; }
+    14%   { transform: translateX(20px) scaleX(1.08); }
+    18%   { transform: translateX(0) scaleX(0.92); }
+    22%   { transform: translateX(0) scaleX(1.04); }
+    26%   { transform: translateX(0) scaleX(1); }
+    65%   { opacity: 1; transform: translateX(0); }
+    78%   { opacity: 0; }
+    100%  { opacity: 0; }
+  }
+  @keyframes bounce-right {
+    0%    { opacity: 0; transform: translateX(200px) scaleX(0.6); }
+    8%    { opacity: 1; }
+    14%   { transform: translateX(-20px) scaleX(1.08); }
+    18%   { transform: translateX(0) scaleX(0.92); }
+    22%   { transform: translateX(0) scaleX(1.04); }
+    26%   { transform: translateX(0) scaleX(1); }
+    65%   { opacity: 1; transform: translateX(0); }
+    78%   { opacity: 0; }
+    100%  { opacity: 0; }
+  }
+
+  /* Bounce heavy: directional with 3 decreasing bounces */
+  .e-bounce-heavy .chip { transform-origin: center bottom; }
+  .e-bounce-heavy[data-dir="bottom"] .chip { animation: bh-bottom 3.6s cubic-bezier(0.34, 0, 0.36, 1) infinite; }
+  .e-bounce-heavy[data-dir="top"]    .chip { animation: bh-top    3.6s cubic-bezier(0.34, 0, 0.36, 1) infinite; transform-origin: center top; }
+  .e-bounce-heavy[data-dir="left"]   .chip { animation: bh-left   3.6s cubic-bezier(0.34, 0, 0.36, 1) infinite; transform-origin: left center; }
+  .e-bounce-heavy[data-dir="right"]  .chip { animation: bh-right  3.6s cubic-bezier(0.34, 0, 0.36, 1) infinite; transform-origin: right center; }
+  @keyframes bh-bottom {
+    0%    { opacity: 0; transform: translateY(-260px) scaleY(1.25); }
+    8%    { opacity: 1; transform: translateY(0) scaleY(0.6); }
+    11%   { transform: translateY(-80px) scaleY(1.15); }
+    16%   { transform: translateY(0) scaleY(0.7); }
+    19%   { transform: translateY(-30px) scaleY(1.08); }
+    23%   { transform: translateY(0) scaleY(0.85); }
+    25%   { transform: translateY(-10px) scaleY(1.02); }
+    27%   { transform: translateY(0) scaleY(1); }
+    65%   { opacity: 1; transform: translateY(0) scaleY(1); }
+    78%   { opacity: 0; }
+    100%  { opacity: 0; }
+  }
+  @keyframes bh-top {
+    0%    { opacity: 0; transform: translateY(260px) scaleY(1.25); }
+    8%    { opacity: 1; transform: translateY(0) scaleY(0.6); }
+    11%   { transform: translateY(80px) scaleY(1.15); }
+    16%   { transform: translateY(0) scaleY(0.7); }
+    19%   { transform: translateY(30px) scaleY(1.08); }
+    23%   { transform: translateY(0) scaleY(0.85); }
+    25%   { transform: translateY(10px) scaleY(1.02); }
+    27%   { transform: translateY(0) scaleY(1); }
+    65%   { opacity: 1; transform: translateY(0) scaleY(1); }
+    78%   { opacity: 0; }
+    100%  { opacity: 0; }
+  }
+  @keyframes bh-left {
+    0%    { opacity: 0; transform: translateX(-360px) scaleX(1.25); }
+    8%    { opacity: 1; transform: translateX(0) scaleX(0.6); }
+    11%   { transform: translateX(110px) scaleX(1.15); }
+    16%   { transform: translateX(0) scaleX(0.7); }
+    19%   { transform: translateX(40px) scaleX(1.08); }
+    23%   { transform: translateX(0) scaleX(0.85); }
+    25%   { transform: translateX(12px) scaleX(1.02); }
+    27%   { transform: translateX(0) scaleX(1); }
+    65%   { opacity: 1; transform: translateX(0) scaleX(1); }
+    78%   { opacity: 0; }
+    100%  { opacity: 0; }
+  }
+  @keyframes bh-right {
+    0%    { opacity: 0; transform: translateX(360px) scaleX(1.25); }
+    8%    { opacity: 1; transform: translateX(0) scaleX(0.6); }
+    11%   { transform: translateX(-110px) scaleX(1.15); }
+    16%   { transform: translateX(0) scaleX(0.7); }
+    19%   { transform: translateX(-40px) scaleX(1.08); }
+    23%   { transform: translateX(0) scaleX(0.85); }
+    25%   { transform: translateX(-12px) scaleX(1.02); }
+    27%   { transform: translateX(0) scaleX(1); }
+    65%   { opacity: 1; transform: translateX(0) scaleX(1); }
+    78%   { opacity: 0; }
+    100%  { opacity: 0; }
+  }
+
+  /* Bounce spring: tighter, snappier rock (compressed timing) */
+  .e-bounce-spring .chip {
+    animation: bounce-spring 3.6s cubic-bezier(0.34, 1.2, 0.4, 1) infinite;
+  }
+  @keyframes bounce-spring {
+    0%    { opacity: 0; transform: translateY(80px) rotate(-15deg) scale(0.8); }
+    6%    { opacity: 1; transform: translateY(0) rotate(12deg) scale(1.05); }
+    9%    { transform: rotate(-7deg) scale(0.98); }
+    12%   { transform: rotate(4deg) scale(1.02); }
+    15%   { transform: rotate(-1.5deg) scale(0.99); }
+    18%   { transform: rotate(0) scale(1); }
+    65%   { opacity: 1; transform: rotate(0) scale(1); }
+    78%   { opacity: 0; }
+    100%  { opacity: 0; }
+  }
+
+  /* Pop: speed-controlled. data-speed: slow / med / fast */
+  .e-pop[data-speed="slow"] .chip { animation: pop-in 5.4s ease-out infinite; }
+  .e-pop[data-speed="med"]  .chip { animation: pop-in 3.6s ease-out infinite; }
+  .e-pop[data-speed="fast"] .chip { animation: pop-in 1.8s ease-out infinite; }
+  @keyframes pop-in {
+    0%    { opacity: 0; transform: scale(0) rotate(-6deg); }
+    8%    { opacity: 1; transform: scale(1.18) rotate(2deg); }
+    12%   { transform: scale(0.96) rotate(-1deg); }
+    16%   { transform: scale(1) rotate(0); }
+    65%   { opacity: 1; transform: scale(1) rotate(0); }
+    78%   { opacity: 0; }
+    100%  { opacity: 0; }
+  }
+  .speed-controls {
+    display: flex; gap: 6px; margin-bottom: 10px;
+    justify-content: center;
+  }
+  .speed-controls button {
+    width: auto; padding: 4px 10px; height: 28px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer; font-size: 11px;
+    font-family: inherit; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    transition: all 120ms; border-radius: 2px;
+  }
+  .speed-controls button:hover { color: var(--text); border-color: var(--muted); }
+  .speed-controls button.active {
+    background: var(--accent); color: #000; border-color: var(--accent);
+  }
+
+  /* Kick: directional slide + tilt impact. Direction controlled by data-dir attribute. */
+  .e-kick[data-dir="left"]   .chip { animation: kick-left   3.6s cubic-bezier(0.2, 0.8, 0.3, 1) infinite; }
+  .e-kick[data-dir="right"]  .chip { animation: kick-right  3.6s cubic-bezier(0.2, 0.8, 0.3, 1) infinite; }
+  .e-kick[data-dir="top"]    .chip { animation: kick-top    3.6s cubic-bezier(0.2, 0.8, 0.3, 1) infinite; }
+  .e-kick[data-dir="bottom"] .chip { animation: kick-bottom 3.6s cubic-bezier(0.2, 0.8, 0.3, 1) infinite; }
+  @keyframes kick-left {
+    0%    { opacity: 0; transform: translateX(-300px) rotate(-25deg); }
+    10%   { opacity: 1; transform: translateX(40px) rotate(15deg); }
+    18%   { transform: translateX(-10px) rotate(-4deg); }
+    24%   { transform: translateX(0) rotate(0); }
+    65%   { opacity: 1; transform: translateX(0) rotate(0); }
+    78%   { opacity: 0; }
+    100%  { opacity: 0; }
+  }
+  @keyframes kick-right {
+    0%    { opacity: 0; transform: translateX(300px) rotate(25deg); }
+    10%   { opacity: 1; transform: translateX(-40px) rotate(-15deg); }
+    18%   { transform: translateX(10px) rotate(4deg); }
+    24%   { transform: translateX(0) rotate(0); }
+    65%   { opacity: 1; transform: translateX(0) rotate(0); }
+    78%   { opacity: 0; }
+    100%  { opacity: 0; }
+  }
+  @keyframes kick-top {
+    0%    { opacity: 0; transform: translateY(-260px) rotate(-180deg); }
+    10%   { opacity: 1; transform: translateY(30px) rotate(-12deg); }
+    18%   { transform: translateY(-8px) rotate(4deg); }
+    24%   { transform: translateY(0) rotate(0); }
+    65%   { opacity: 1; transform: translateY(0) rotate(0); }
+    78%   { opacity: 0; }
+    100%  { opacity: 0; }
+  }
+  @keyframes kick-bottom {
+    0%    { opacity: 0; transform: translateY(260px) rotate(180deg); }
+    10%   { opacity: 1; transform: translateY(-30px) rotate(12deg); }
+    18%   { transform: translateY(8px) rotate(-4deg); }
+    24%   { transform: translateY(0) rotate(0); }
+    65%   { opacity: 1; transform: translateY(0) rotate(0); }
+    78%   { opacity: 0; }
+    100%  { opacity: 0; }
+  }
+
+  /* Directional control buttons */
+  .dir-controls {
+    display: flex; gap: 6px; margin-bottom: 10px;
+    justify-content: center;
+  }
+  .dir-controls button {
+    width: 34px; height: 28px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer; font-size: 14px;
+    font-family: inherit; font-weight: 700;
+    transition: all 120ms; border-radius: 2px;
+  }
+  .dir-controls button:hover { color: var(--text); border-color: var(--muted); }
+  .dir-controls button.active {
+    background: var(--accent); color: #000; border-color: var(--accent);
+  }
+
+  /* === Section 2 — Smooth entries === */
+
+  /* Fade in */
+  .e-fade .chip {
+    animation: fade-in 3.6s ease-in-out infinite;
+  }
+  @keyframes fade-in {
+    0%    { opacity: 0; }
+    18%   { opacity: 1; }
+    65%   { opacity: 1; }
+    78%   { opacity: 0; }
+    100%  { opacity: 0; }
+  }
+
+  /* Slide up from below (smooth) */
+  .e-slide-up .chip {
+    animation: slide-up 3.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+  @keyframes slide-up {
+    0%    { opacity: 0; transform: translateY(60px); }
+    18%   { opacity: 1; transform: translateY(0); }
+    65%   { opacity: 1; transform: translateY(0); }
+    78%   { opacity: 0; transform: translateY(-20px); }
+    100%  { opacity: 0; }
+  }
+
+  /* Drift in — gentle float + fade. Exit mirrors entry (float up + blur out). */
+  .e-drift .chip {
+    animation: drift-in 3.6s ease-in-out infinite;
+  }
+  @keyframes drift-in {
+    0%    { opacity: 0; transform: translateY(18px) scale(0.94); filter: blur(6px); }
+    25%   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    65%   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    90%   { opacity: 0; transform: translateY(-18px) scale(0.94); filter: blur(6px); }
+    100%  { opacity: 0; }
+  }
+
+  /* Scale up (no bounce) */
+  .e-scale .chip {
+    animation: scale-in 3.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes scale-in {
+    0%    { opacity: 0; transform: scale(0.4); }
+    18%   { opacity: 1; transform: scale(1); }
+    65%   { opacity: 1; transform: scale(1); }
+    78%   { opacity: 0; transform: scale(1.1); }
+    100%  { opacity: 0; }
+  }
+
+  /* === Section 3 — Spatial (3D) entries === */
+  .stage-3d { perspective: 800px; }
+
+  /* Y-flip — like a card face flipping toward you. Exit mirrors entry (same span, same easing). */
+  .e-y-flip .chip {
+    animation: y-flip 3.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+  }
+  @keyframes y-flip {
+    0%    { opacity: 0; transform: rotateY(95deg); }
+    8%    { opacity: 1; }
+    20%   { transform: rotateY(0); }
+    60%   { opacity: 1; transform: rotateY(0); }
+    72%   { transform: rotateY(-95deg); opacity: 1; }
+    78%   { opacity: 0; transform: rotateY(-95deg); }
+    100%  { opacity: 0; }
+  }
+
+  /* Z-spin — flat rotation while scaling in. Exit mirrors entry. */
+  .e-z-spin .chip {
+    animation: z-spin 3.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  @keyframes z-spin {
+    0%    { opacity: 0; transform: scale(0) rotate(-360deg); }
+    8%    { opacity: 1; }
+    20%   { transform: scale(1) rotate(0); }
+    60%   { opacity: 1; transform: scale(1) rotate(0); }
+    72%   { transform: scale(0) rotate(360deg); opacity: 1; }
+    78%   { opacity: 0; transform: scale(0) rotate(360deg); }
+    100%  { opacity: 0; }
+  }
+
+  /* X-flip — top-to-bottom card flip. Exit mirrors entry. */
+  .e-x-flip .chip {
+    animation: x-flip 3.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    transform-style: preserve-3d;
+  }
+  @keyframes x-flip {
+    0%    { opacity: 0; transform: rotateX(-90deg); }
+    8%    { opacity: 1; }
+    20%   { transform: rotateX(0); }
+    60%   { opacity: 1; transform: rotateX(0); }
+    72%   { transform: rotateX(90deg); opacity: 1; }
+    78%   { opacity: 0; transform: rotateX(90deg); }
+    100%  { opacity: 0; }
+  }
+
+  /* Depth push — from far away through screen. SINGLE smooth Z motion (no scale, perspective handles size). */
+  .e-depth .chip {
+    animation: depth-push 3.6s cubic-bezier(0.22, 0.6, 0.36, 1) infinite;
+  }
+  @keyframes depth-push {
+    0%    { opacity: 0; transform: translateZ(-600px); }
+    5%    { opacity: 1; }
+    25%   { transform: translateZ(0); }
+    65%   { opacity: 1; transform: translateZ(0); }
+    85%   { opacity: 0; transform: translateZ(400px); }
+    100%  { opacity: 0; }
+  }
+
+  /* === Section 4 — Mask reveals === */
+
+  /* Iris in — circular mask grows from centre */
+  .e-iris .chip {
+    animation: iris-in 3.6s ease-out infinite;
+    clip-path: circle(0% at 50% 50%);
+  }
+  @keyframes iris-in {
+    0%    { clip-path: circle(0% at 50% 50%); opacity: 1; }
+    25%   { clip-path: circle(80% at 50% 50%); opacity: 1; }
+    65%   { clip-path: circle(80% at 50% 50%); opacity: 1; }
+    78%   { clip-path: circle(0% at 50% 50%); opacity: 1; }
+    100%  { clip-path: circle(0% at 50% 50%); opacity: 0; }
+  }
+
+  /* Paint stripe wipe — diagonal */
+  .e-paint .chip {
+    animation: paint-wipe 3.6s ease-out infinite;
+    clip-path: polygon(-20% 0, -10% 0, -30% 100%, -40% 100%);
+  }
+  @keyframes paint-wipe {
+    0%    { clip-path: polygon(-20% 0, -10% 0, -30% 100%, -40% 100%); }
+    25%   { clip-path: polygon(0 0, 130% 0, 110% 100%, 0 100%); }
+    65%   { clip-path: polygon(0 0, 130% 0, 110% 100%, 0 100%); }
+    78%   { clip-path: polygon(110% 0, 130% 0, 130% 100%, 110% 100%); }
+    100%  { clip-path: polygon(110% 0, 130% 0, 130% 100%, 110% 100%); opacity: 0; }
+  }
+
+  /* Letter stagger — characters drop in 30ms apart */
+  .e-letters {  }
+  .e-letters .chip { padding: 12px 20px; }
+  .e-letters .ch {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(-30px);
+    animation: letter-drop 3.6s ease-out infinite;
+  }
+  @keyframes letter-drop {
+    0%, 8%    { opacity: 0; transform: translateY(-30px); }
+    18%       { opacity: 1; transform: translateY(4px); }
+    22%       { transform: translateY(0); }
+    65%       { opacity: 1; transform: translateY(0); }
+    72%       { opacity: 0; transform: translateY(20px); }
+    100%      { opacity: 0; }
+  }
+
+  /* Type-on — characters reveal one-by-one with caret */
+  .e-type .chip {
+    overflow: hidden;
+    position: relative;
+  }
+  .e-type .typeface {
+    display: inline-block;
+    width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    vertical-align: top;
+    animation: type-on 3.6s steps(4) infinite;
+  }
+  .e-type .caret {
+    display: inline-block;
+    width: 4px; height: 30px;
+    background: var(--navy);
+    vertical-align: middle;
+    margin-left: 2px;
+    animation: caret-blink 3.6s linear infinite;
+  }
+  @keyframes type-on {
+    0%, 5%    { width: 0; }
+    25%       { width: 4ch; }
+    78%       { width: 4ch; opacity: 1; }
+    82%       { opacity: 0; }
+    100%      { opacity: 0; }
+  }
+  @keyframes caret-blink {
+    0%, 30%   { opacity: 1; }
+    78%       { opacity: 1; }
+    79%       { opacity: 0; }
+    100%      { opacity: 0; }
+  }
+
+  /* Draw-on — SVG stroke path drawing in */
+  .e-draw .drawing {
+    width: 60%; aspect-ratio: 2 / 1;
+    animation: draw-out 3.6s ease-in-out infinite;
+  }
+  .e-draw .drawing svg { width: 100%; height: 100%; display: block; }
+  .e-draw .drawing path {
+    fill: none;
+    stroke: var(--paper);
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 600;
+    stroke-dashoffset: 600;
+    animation: draw 3.6s ease-in-out infinite;
+  }
+  @keyframes draw {
+    0%, 10%   { stroke-dashoffset: 600; }
+    35%       { stroke-dashoffset: 0; }
+    65%       { stroke-dashoffset: 0; }
+    78%       { stroke-dashoffset: -600; }
+    100%      { stroke-dashoffset: -600; }
+  }
+  @keyframes draw-out {
+    0%, 65%   { opacity: 1; }
+    78%       { opacity: 1; }
+    79%       { opacity: 0; }
+    100%      { opacity: 0; }
+  }
+
+  /* === Section 5 — Exits === */
+  /* Each exit card starts with the chip visible (no entrance) and demonstrates an exit */
+
+  /* Streak off — directional (8 directions). Default: down-left. */
+  .e-streak[data-dir="n"]  .chip { animation: streak-n  3.6s ease-in infinite; }
+  .e-streak[data-dir="ne"] .chip { animation: streak-ne 3.6s ease-in infinite; }
+  .e-streak[data-dir="e"]  .chip { animation: streak-e  3.6s ease-in infinite; }
+  .e-streak[data-dir="se"] .chip { animation: streak-se 3.6s ease-in infinite; }
+  .e-streak[data-dir="s"]  .chip { animation: streak-s  3.6s ease-in infinite; }
+  .e-streak[data-dir="sw"] .chip { animation: streak-sw 3.6s ease-in infinite; }
+  .e-streak[data-dir="w"]  .chip { animation: streak-w  3.6s ease-in infinite; }
+  .e-streak[data-dir="nw"] .chip { animation: streak-nw 3.6s ease-in infinite; }
+  @keyframes streak-n {
+    0%, 35%  { opacity: 1; transform: translate(0,0); filter: blur(0); }
+    50%      { opacity: 0; transform: translate(0, -300px) skewY(-12deg); filter: blur(10px); }
+    100%     { opacity: 0; }
+  }
+  @keyframes streak-ne {
+    0%, 35%  { opacity: 1; transform: translate(0,0); filter: blur(0); }
+    50%      { opacity: 0; transform: translate(300px, -180px) skew(-12deg, -8deg); filter: blur(10px); }
+    100%     { opacity: 0; }
+  }
+  @keyframes streak-e {
+    0%, 35%  { opacity: 1; transform: translate(0,0); filter: blur(0); }
+    50%      { opacity: 0; transform: translate(360px, 0) skewX(-15deg); filter: blur(10px); }
+    100%     { opacity: 0; }
+  }
+  @keyframes streak-se {
+    0%, 35%  { opacity: 1; transform: translate(0,0); filter: blur(0); }
+    50%      { opacity: 0; transform: translate(300px, 180px) skew(-12deg, 8deg); filter: blur(10px); }
+    100%     { opacity: 0; }
+  }
+  @keyframes streak-s {
+    0%, 35%  { opacity: 1; transform: translate(0,0); filter: blur(0); }
+    50%      { opacity: 0; transform: translate(0, 300px) skewY(12deg); filter: blur(10px); }
+    100%     { opacity: 0; }
+  }
+  @keyframes streak-sw {
+    0%, 35%  { opacity: 1; transform: translate(0,0); filter: blur(0); }
+    50%      { opacity: 0; transform: translate(-300px, 180px) skew(12deg, -8deg); filter: blur(10px); }
+    100%     { opacity: 0; }
+  }
+  @keyframes streak-w {
+    0%, 35%  { opacity: 1; transform: translate(0,0); filter: blur(0); }
+    50%      { opacity: 0; transform: translate(-360px, 0) skewX(15deg); filter: blur(10px); }
+    100%     { opacity: 0; }
+  }
+  @keyframes streak-nw {
+    0%, 35%  { opacity: 1; transform: translate(0,0); filter: blur(0); }
+    50%      { opacity: 0; transform: translate(-300px, -180px) skew(12deg, 8deg); filter: blur(10px); }
+    100%     { opacity: 0; }
+  }
+  .dir-controls.dir-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 4px; max-width: 130px; margin: 0 auto 10px;
+  }
+  .dir-controls.dir-grid .dir-spacer { height: 28px; }
+
+  /* Burst out — SINGLE smooth motion: scale, opacity, blur all change in lock-step */
+  .e-burst .chip {
+    animation: burst-out 3.6s cubic-bezier(0.5, 0, 0.6, 1) infinite;
+  }
+  @keyframes burst-out {
+    0%, 35%   { opacity: 1; transform: scale(1); filter: blur(0); }
+    50%       { opacity: 0; transform: scale(2.4); filter: blur(12px); }
+    100%      { opacity: 0; transform: scale(2.4); filter: blur(12px); }
+  }
+
+  /* Glitch out — multi-part: 4 overlaid horizontal slices each glitching on different beats.
+     At various steps, 1, 2, or several slices are visible simultaneously = real glitch smear. */
+  .e-glitch .glitch-stack {
+    position: relative;
+    display: inline-block;
+  }
+  .e-glitch .glitch-stack > .chip {
+    animation: glitch-base 3.6s steps(40) infinite;
+    position: relative;
+  }
+  .e-glitch .glitch-slice {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    margin: 0; opacity: 0;
+    pointer-events: none;
+  }
+  .e-glitch .glitch-slice.s1 { clip-path: inset(0 0 75% 0); animation: glitch-s1 3.6s steps(40) infinite; }
+  .e-glitch .glitch-slice.s2 { clip-path: inset(25% 0 50% 0); animation: glitch-s2 3.6s steps(40) infinite; }
+  .e-glitch .glitch-slice.s3 { clip-path: inset(50% 0 25% 0); animation: glitch-s3 3.6s steps(40) infinite; }
+  .e-glitch .glitch-slice.s4 { clip-path: inset(75% 0 0 0);   animation: glitch-s4 3.6s steps(40) infinite; }
+  @keyframes glitch-base {
+    0%, 33%   { opacity: 1; transform: translate(0); }
+    35%       { opacity: 1; transform: translate(-2px, 1px); }
+    37%       { opacity: 0; }
+    38%       { opacity: 1; transform: translate(3px, -1px); }
+    40%       { opacity: 0; }
+    42%       { opacity: 1; transform: translate(-4px, 2px); }
+    44%       { opacity: 0; }
+    46%       { opacity: 0.5; transform: translate(2px, -1px); }
+    48%       { opacity: 0; }
+    100%      { opacity: 0; }
+  }
+  @keyframes glitch-s1 {
+    0%, 34%   { opacity: 0; transform: translate(0); }
+    35%       { opacity: 1; transform: translate(-16px, 0); }
+    37%       { opacity: 0; }
+    39%       { opacity: 1; transform: translate(22px, 1px); }
+    41%       { opacity: 0; }
+    44%       { opacity: 1; transform: translate(-34px, 0); }
+    46%       { opacity: 1; transform: translate(40px, 0); }
+    48%       { opacity: 0; }
+    100%      { opacity: 0; }
+  }
+  @keyframes glitch-s2 {
+    0%, 35%   { opacity: 0; }
+    36%       { opacity: 1; transform: translate(14px, -1px); }
+    38%       { opacity: 0; }
+    40%       { opacity: 1; transform: translate(-22px, 1px); }
+    42%       { opacity: 1; transform: translate(8px, 0); }
+    43%       { opacity: 0; }
+    45%       { opacity: 1; transform: translate(28px, 0); }
+    47%       { opacity: 0; }
+    100%      { opacity: 0; }
+  }
+  @keyframes glitch-s3 {
+    0%, 36%   { opacity: 0; }
+    37%       { opacity: 1; transform: translate(-12px, 0); }
+    39%       { opacity: 0; }
+    41%       { opacity: 1; transform: translate(18px, -2px); }
+    43%       { opacity: 0; }
+    44%       { opacity: 1; transform: translate(-26px, 0); }
+    46%       { opacity: 1; transform: translate(36px, 1px); }
+    49%       { opacity: 0; }
+    100%      { opacity: 0; }
+  }
+  @keyframes glitch-s4 {
+    0%, 37%   { opacity: 0; }
+    38%       { opacity: 1; transform: translate(10px, 0); }
+    40%       { opacity: 0; }
+    41%       { opacity: 1; transform: translate(-20px, 2px); }
+    43%       { opacity: 1; transform: translate(24px, 0); }
+    45%       { opacity: 0; }
+    46%       { opacity: 1; transform: translate(-38px, 0); }
+    50%       { opacity: 0; }
+    100%      { opacity: 0; }
+  }
+
+  /* Iris close — circular mask shrinks to nothing */
+  .e-iris-out .chip {
+    animation: iris-out 3.6s ease-in infinite;
+  }
+  @keyframes iris-out {
+    0%, 35%   { clip-path: circle(80% at 50% 50%); opacity: 1; }
+    50%       { clip-path: circle(0% at 50% 50%); opacity: 1; }
+    100%      { clip-path: circle(0% at 50% 50%); opacity: 0; }
+  }
+
+  /* ===== Disintegrate variants: strips / particles / tiles, each directional ===== */
+
+  /* Variant 1: strips (vertical). Direction: up / down / outward. */
+  .e-disintegrate .strip-wrap {
+    position: relative;
+    width: auto; display: inline-flex; gap: 0;
+  }
+  .e-disintegrate .strip {
+    display: inline-block; overflow: hidden; position: relative;
+    width: 12px; height: 60px;
+    background: var(--paper);
+  }
+  .e-disintegrate[data-dir="up"]   .strip { animation: strip-up   3.6s ease-out infinite; }
+  .e-disintegrate[data-dir="down"] .strip { animation: strip-down 3.6s ease-out infinite; }
+  .e-disintegrate[data-dir="out"]  .strip { animation: strip-out  3.6s ease-out infinite; }
+  .e-disintegrate .strip:nth-child(1)  { animation-delay: 0.00s; --i: -5; }
+  .e-disintegrate .strip:nth-child(2)  { animation-delay: 0.02s; --i: -4; }
+  .e-disintegrate .strip:nth-child(3)  { animation-delay: 0.04s; --i: -3; }
+  .e-disintegrate .strip:nth-child(4)  { animation-delay: 0.06s; --i: -2; }
+  .e-disintegrate .strip:nth-child(5)  { animation-delay: 0.08s; --i: -1; }
+  .e-disintegrate .strip:nth-child(6)  { animation-delay: 0.10s; --i: 0;  }
+  .e-disintegrate .strip:nth-child(7)  { animation-delay: 0.12s; --i: 1;  }
+  .e-disintegrate .strip:nth-child(8)  { animation-delay: 0.14s; --i: 2;  }
+  .e-disintegrate .strip:nth-child(9)  { animation-delay: 0.16s; --i: 3;  }
+  .e-disintegrate .strip:nth-child(10) { animation-delay: 0.18s; --i: 4;  }
+  .e-disintegrate .strip:nth-child(11) { animation-delay: 0.20s; --i: 5;  }
+  .e-disintegrate .strip:nth-child(12) { animation-delay: 0.22s; --i: 6;  }
+  @keyframes strip-up {
+    0%, 35%  { opacity: 1; transform: translateY(0) rotate(0); }
+    50%      { opacity: 0; transform: translateY(-50px) translateX(6px) rotate(20deg); }
+    100%     { opacity: 0; }
+  }
+  @keyframes strip-down {
+    0%, 35%  { opacity: 1; transform: translateY(0) rotate(0); }
+    50%      { opacity: 0; transform: translateY(50px) translateX(-6px) rotate(-20deg); }
+    100%     { opacity: 0; }
+  }
+  @keyframes strip-out {
+    0%, 35%  { opacity: 1; transform: translate(0, 0) rotate(0); }
+    50%      { opacity: 0; transform: translate(calc(var(--i, 0) * 8px), -30px) rotate(calc(var(--i, 0) * 6deg)); }
+    100%     { opacity: 0; }
+  }
+
+  /* Variant 2: particles. 24 small dots emerge from chip position. */
+  .e-particles .particle-wrap {
+    position: relative;
+    display: inline-block;
+    width: 120px; height: 60px;
+  }
+  .e-particles .chip { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+  .e-particles[data-dir="up"]   .chip { animation: particle-chip 3.6s steps(1) infinite; }
+  .e-particles[data-dir="down"] .chip { animation: particle-chip 3.6s steps(1) infinite; }
+  .e-particles[data-dir="out"]  .chip { animation: particle-chip 3.6s steps(1) infinite; }
+  @keyframes particle-chip {
+    0%, 35%  { opacity: 1; }
+    36%      { opacity: 0; }
+    100%     { opacity: 0; }
+  }
+  .e-particles .particle {
+    position: absolute; top: 50%; left: 50%;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--paper);
+    opacity: 0;
+    transform: translate(-50%, -50%);
+  }
+  .e-particles[data-dir="up"]   .particle { animation: particle-up   3.6s ease-out infinite; }
+  .e-particles[data-dir="down"] .particle { animation: particle-down 3.6s ease-out infinite; }
+  .e-particles[data-dir="out"]  .particle { animation: particle-out  3.6s ease-out infinite; }
+  @keyframes particle-up {
+    0%, 35%  { opacity: 0; transform: translate(calc(var(--ox, 0px) - 50%), -50%); }
+    36%      { opacity: 1; }
+    50%      { opacity: 0; transform: translate(calc(var(--ox, 0px) * 0.4 - 50%), calc(-80px - 50%)) scale(0.5); }
+    100%     { opacity: 0; }
+  }
+  @keyframes particle-down {
+    0%, 35%  { opacity: 0; transform: translate(calc(var(--ox, 0px) - 50%), -50%); }
+    36%      { opacity: 1; }
+    50%      { opacity: 0; transform: translate(calc(var(--ox, 0px) * 0.4 - 50%), calc(80px - 50%)) scale(0.5); }
+    100%     { opacity: 0; }
+  }
+  @keyframes particle-out {
+    0%, 35%  { opacity: 0; transform: translate(calc(var(--ox, 0px) - 50%), calc(var(--oy, 0px) - 50%)); }
+    36%      { opacity: 1; }
+    50%      { opacity: 0; transform: translate(calc(var(--dx, 0px) - 50%), calc(var(--dy, 0px) - 50%)) scale(0.4); }
+    100%     { opacity: 0; }
+  }
+
+  /* Variant 3: tiles. Chip splits into 8 squares (4×2 grid) that scatter. */
+  .e-tiles .tile-wrap {
+    position: relative; display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 1px;
+    width: 110px; height: 48px;
+  }
+  .e-tiles .tile {
+    background: var(--paper);
+    transform-origin: center center;
+  }
+  .e-tiles[data-dir="up"]   .tile { animation: tile-up   3.6s ease-out infinite; }
+  .e-tiles[data-dir="down"] .tile { animation: tile-down 3.6s ease-out infinite; }
+  .e-tiles[data-dir="out"]  .tile { animation: tile-out  3.6s ease-out infinite; }
+  .e-tiles .tile:nth-child(1) { animation-delay: 0.00s; --tx: -1.5; --ty: -0.5; }
+  .e-tiles .tile:nth-child(2) { animation-delay: 0.02s; --tx: -0.5; --ty: -0.5; }
+  .e-tiles .tile:nth-child(3) { animation-delay: 0.04s; --tx: 0.5;  --ty: -0.5; }
+  .e-tiles .tile:nth-child(4) { animation-delay: 0.06s; --tx: 1.5;  --ty: -0.5; }
+  .e-tiles .tile:nth-child(5) { animation-delay: 0.08s; --tx: -1.5; --ty: 0.5;  }
+  .e-tiles .tile:nth-child(6) { animation-delay: 0.10s; --tx: -0.5; --ty: 0.5;  }
+  .e-tiles .tile:nth-child(7) { animation-delay: 0.12s; --tx: 0.5;  --ty: 0.5;  }
+  .e-tiles .tile:nth-child(8) { animation-delay: 0.14s; --tx: 1.5;  --ty: 0.5;  }
+  @keyframes tile-up {
+    0%, 35%  { opacity: 1; transform: translate(0, 0) rotate(0); }
+    50%      { opacity: 0; transform: translate(calc(var(--tx, 0) * 6px), -50px) rotate(calc(var(--tx, 0) * 12deg)); }
+    100%     { opacity: 0; }
+  }
+  @keyframes tile-down {
+    0%, 35%  { opacity: 1; transform: translate(0, 0) rotate(0); }
+    50%      { opacity: 0; transform: translate(calc(var(--tx, 0) * 6px), 50px) rotate(calc(var(--tx, 0) * -12deg)); }
+    100%     { opacity: 0; }
+  }
+  @keyframes tile-out {
+    0%, 35%  { opacity: 1; transform: translate(0, 0) rotate(0); }
+    50%      { opacity: 0; transform: translate(calc(var(--tx, 0) * 22px), calc(var(--ty, 0) * 40px)) rotate(calc(var(--tx, 0) * 20deg)); }
+    100%     { opacity: 0; }
+  }
+
+  footer.fineprint {
+    margin-top: 60px; padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 12px;
+    font-family: var(--mono); line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <a href="index.html" class="brand"><span class="brand-top">Callum's</span>Effects Library</a>
+  <nav>
+    <div class="group" data-group="search"><a href="search.html" class="group-head">Search</a></div>
+    <div class="group" data-group="text">
+      <a href="text.html" class="group-head">Text</a>
+      <div class="dropdown">
+        <a href="text.html">Text</a>
+        <a href="lower-thirds.html">Lower thirds</a>
+      </div>
+    </div>
+    <div class="group" data-group="music"><a href="music.html" class="group-head">Music</a></div>
+    <div class="group current" data-group="motion">
+      <span class="group-head current">Motion</span>
+      <div class="dropdown">
+        <a href="entrances.html" class="current">Entrances</a>
+        <a href="mograph.html">Mograph</a>
+        <a href="beats.html">Beats</a>
+        <a href="shapes.html">Shapes</a>
+        <a href="logos.html">Logos</a>
+        <a href="ease-curves.html">Ease curves</a>
+        <a href="speedometer.html">Speedometer</a>
+        <a href="scribbles.html">Scribbles</a>
+      </div>
+    </div>
+    <div class="group" data-group="visual">
+      <span class="group-head">Visual</span>
+      <div class="dropdown">
+        <a href="colours.html">Colours</a>
+        <a href="atmosphere.html">Atmosphere</a>
+        <a href="overlays.html">Overlays</a>
+        <a href="glitch.html">Glitch</a>
+      </div>
+    </div>
+    <div class="group" data-group="cinematography">
+      <span class="group-head">Cinematography</span>
+      <div class="dropdown">
+        <a href="camera-moves.html">Camera moves</a>
+        <a href="transitions.html">Transitions</a>
+        <a href="lens.html">Lens</a>
+      </div>
+    </div>
+    <div class="group" data-group="tools">
+      <span class="group-head">Tools &amp; assets</span>
+      <div class="dropdown">
+        <a href="sound-fx.html">Sound FX</a>
+        <a href="ai-toolchain.html">AI toolchain</a>
+        <a href="templates.html">Templates</a>
+        <a href="shared-library/browser.html">Shared library</a>
+        <a href="shared-library/Mograph/preview.html">Mograph preview</a>
+        <a href="shared-library/Greenscreen/index.html">Greenscreen templates</a>
+      </div>
+    </div>
+  </nav>
+</div>
+
+<header class="page-header">
+  <div>
+    <h1>Entrances &amp; exits</h1>
+    <p>Visual showcase of how things can appear and disappear. Same demo object (a "$1M" chip) across every card so you can compare motions directly. Each card loops on a 3.6s cycle. First-pass spread — call out the ones you like, the ones you don't, and we refine.</p>
+  </div>
+</header>
+
+<section>
+  <h2>1 · Punch entries</h2>
+  <p class="intro">High-energy snaps. Good for impact moments — numbers stamping, stat reveals, key claims landing.</p>
+  <div class="grid">
+
+    <div class="demo e-stamp" id="e-stamp">
+      <div class="stage"><div class="chip">$1M</div></div>
+      <h3>Stamp (from camera)</h3>
+      <p class="caption">starts huge (scale 14) and blurred in front of camera, slams down to size with squash · "the stamp comes at YOU"</p>
+    </div>
+
+    <div class="demo e-slam" id="e-slam" data-dir="top">
+      <div class="stage"><div class="chip-wrap"><div class="chip">$1M</div></div></div>
+      <div class="dir-controls">
+        <button data-dir="left" title="Slam from left">←</button>
+        <button data-dir="top" class="active" title="Slam from above">↑</button>
+        <button data-dir="bottom" title="Slam from below">↓</button>
+        <button data-dir="right" title="Slam from right">→</button>
+      </div>
+      <h3>Slam (hammer + shake, directional)</h3>
+      <p class="caption">drops fast from chosen direction + impact bounce + stage-shake on landing · click ← ↑ ↓ → · use for gavel / verdict / "BAM"</p>
+    </div>
+
+    <div class="demo e-bounce" id="e-bounce" data-dir="bottom">
+      <div class="stage"><div class="chip">$1M</div></div>
+      <div class="dir-controls">
+        <button data-dir="left" title="From left">←</button>
+        <button data-dir="top" title="From top">↑</button>
+        <button data-dir="bottom" class="active" title="From bottom">↓</button>
+        <button data-dir="right" title="From right">→</button>
+      </div>
+      <h3>Bounce (directional)</h3>
+      <p class="caption">overshoot from chosen edge + squash/stretch · playful, character-y · click direction to swap</p>
+    </div>
+
+    <div class="demo e-bounce-heavy" id="e-bounce-heavy" data-dir="bottom">
+      <div class="stage"><div class="chip">$1M</div></div>
+      <div class="dir-controls">
+        <button data-dir="left" title="From left">←</button>
+        <button data-dir="top" title="From top">↑</button>
+        <button data-dir="bottom" class="active" title="From bottom">↓</button>
+        <button data-dir="right" title="From right">→</button>
+      </div>
+      <h3>Bounce heavy (directional)</h3>
+      <p class="caption">drops with weight, 3 decreasing bounces, big squash on each impact · gravity-driven feel from chosen direction</p>
+    </div>
+
+    <div class="demo e-bounce-spring" id="e-bounce-spring">
+      <div class="stage"><div class="chip">$1M</div></div>
+      <h3>Bounce (spring rock)</h3>
+      <p class="caption">arrives crooked, snaps to centre with quick side-to-side rocking that damps · tightened timing</p>
+    </div>
+
+    <div class="demo e-pop" id="e-pop" data-speed="med">
+      <div class="stage"><div class="chip">$1M</div></div>
+      <div class="speed-controls">
+        <button data-speed="slow" title="Slow">Slow</button>
+        <button data-speed="med" class="active" title="Medium">Med</button>
+        <button data-speed="fast" title="Fast">Fast</button>
+      </div>
+      <h3>Pop (speed)</h3>
+      <p class="caption">scale 0 → 1.18 → 1 with tiny rotation · choose pace · light, snappy, good for sub-callouts</p>
+    </div>
+
+    <div class="demo e-kick" id="e-kick" data-dir="left">
+      <div class="stage"><div class="chip">$1M</div></div>
+      <div class="dir-controls">
+        <button data-dir="left" class="active" title="Kick from left">←</button>
+        <button data-dir="top" title="Kick from top">↑</button>
+        <button data-dir="bottom" title="Kick from bottom">↓</button>
+        <button data-dir="right" title="Kick from right">→</button>
+      </div>
+      <h3>Kick (directional)</h3>
+      <p class="caption">slide in from chosen edge with rotation impact · click ← ↑ ↓ → to change direction · attitude-heavy</p>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>2 · Smooth entries</h2>
+  <p class="intro">Elegant, premium, low-key. Good for brand frames, subtle context, end-card setups.</p>
+  <div class="grid">
+
+    <div class="demo e-fade" id="e-fade">
+      <div class="stage"><div class="chip">$1M</div></div>
+      <h3>Fade</h3>
+      <p class="caption">opacity 0 → 1 · slow ease · most invisible, most premium</p>
+    </div>
+
+    <div class="demo e-slide-up" id="e-slide-up">
+      <div class="stage"><div class="chip">$1M</div></div>
+      <h3>Slide up</h3>
+      <p class="caption">translateY 60 → 0 · cubic-bezier easing · clean, doesn't shout</p>
+    </div>
+
+    <div class="demo e-drift" id="e-drift">
+      <div class="stage"><div class="chip">$1M</div></div>
+      <h3>Drift in</h3>
+      <p class="caption">fade + tiny float + blur defocus · feels like a thought arriving</p>
+    </div>
+
+    <div class="demo e-scale" id="e-scale">
+      <div class="stage"><div class="chip">$1M</div></div>
+      <h3>Scale (no bounce)</h3>
+      <p class="caption">scale 0.4 → 1 · clean cubic ease · understated growth</p>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>3 · Spatial (3D) entries</h2>
+  <p class="intro">3D-feeling rotations and depth moves. Good for product reveals, brand stings, "this is something" energy.</p>
+  <div class="grid">
+
+    <div class="demo e-y-flip" id="e-y-flip">
+      <div class="stage stage-3d"><div class="chip">$1M</div></div>
+      <h3>Y-flip (card)</h3>
+      <p class="caption">rotateY 95° → 0° · feels like flipping a card to camera · the AIIMS pill move</p>
+    </div>
+
+    <div class="demo e-z-spin" id="e-z-spin">
+      <div class="stage"><div class="chip">$1M</div></div>
+      <h3>Z-spin</h3>
+      <p class="caption">rotate -360° + scale 0 → 1 · flat spin, no perspective · disc reveal energy</p>
+    </div>
+
+    <div class="demo e-x-flip" id="e-x-flip">
+      <div class="stage stage-3d"><div class="chip">$1M</div></div>
+      <h3>X-flip (door)</h3>
+      <p class="caption">rotateX -90° → 0° · top-edge hinge, drops down toward camera</p>
+    </div>
+
+    <div class="demo e-depth" id="e-depth">
+      <div class="stage stage-3d"><div class="chip">$1M</div></div>
+      <h3>Depth push</h3>
+      <p class="caption">translateZ -600 → 0 · arrives from deep space · best with subtle blur trail</p>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>4 · Mask reveals</h2>
+  <p class="intro">The object is fully formed, but the reveal happens via a mask wiping across it. Used everywhere in motion graphics for clean, on-brand entries.</p>
+  <div class="grid">
+
+    <div class="demo e-iris" id="e-iris">
+      <div class="stage"><div class="chip">$1M</div></div>
+      <h3>Iris in (circle)</h3>
+      <p class="caption">circular clip-path 0% → 80% from centre · classic film opener</p>
+    </div>
+
+    <div class="demo e-paint" id="e-paint">
+      <div class="stage"><div class="chip">$1M</div></div>
+      <h3>Paint stripe wipe</h3>
+      <p class="caption">diagonal polygon clip-path sweeps L→R · feels like a paint stripe revealing the chip</p>
+    </div>
+
+    <div class="demo e-letters" id="e-letters">
+      <div class="stage">
+        <div class="chip">
+          <span class="ch" style="animation-delay: 0.00s">$</span><span class="ch" style="animation-delay: 0.06s">1</span><span class="ch" style="animation-delay: 0.12s">M</span>
+        </div>
+      </div>
+      <h3>Letter stagger</h3>
+      <p class="caption">characters drop in 60ms apart from above · for titles + price reveals</p>
+    </div>
+
+    <div class="demo e-type" id="e-type">
+      <div class="stage">
+        <div class="chip">
+          <span class="typeface">$1M</span><span class="caret"></span>
+        </div>
+      </div>
+      <h3>Type-on</h3>
+      <p class="caption">width 0 → 4ch in 4 steps + blinking caret · transcript / chat / messaging vibes</p>
+    </div>
+
+    <div class="demo e-draw" id="e-draw">
+      <div class="stage">
+        <div class="drawing">
+          <svg viewBox="0 0 200 100" preserveAspectRatio="xMidYMid meet">
+            <path d="M 20 80 Q 60 20, 100 80 T 180 80" />
+          </svg>
+        </div>
+      </div>
+      <h3>Draw-on (SVG stroke)</h3>
+      <p class="caption">stroke-dashoffset 600 → 0 · hand-drawn feel · good for emphasis underlines, scribbles</p>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>5 · Exits</h2>
+  <p class="intro">Ways for things to leave the screen. Mirror the entry where you can, or pick something more aggressive for impact moments.</p>
+  <div class="grid">
+
+    <div class="demo e-streak" id="e-streak" data-dir="sw">
+      <div class="stage"><div class="chip">$1M</div></div>
+      <div class="dir-controls dir-grid">
+        <button data-dir="nw" title="Up-left">↖</button>
+        <button data-dir="n"  title="Up">↑</button>
+        <button data-dir="ne" title="Up-right">↗</button>
+        <button data-dir="w"  title="Left">←</button>
+        <span class="dir-spacer"></span>
+        <button data-dir="e"  title="Right">→</button>
+        <button data-dir="sw" class="active" title="Down-left">↙</button>
+        <button data-dir="s"  title="Down">↓</button>
+        <button data-dir="se" title="Down-right">↘</button>
+      </div>
+      <h3>Streak off (8 directions)</h3>
+      <p class="caption">translate off-frame in chosen direction + skew + motion blur · click any arrow · pairs with whoosh SFX</p>
+    </div>
+
+    <div class="demo e-burst" id="e-burst">
+      <div class="stage"><div class="chip">$1M</div></div>
+      <h3>Burst out</h3>
+      <p class="caption">scale 1 → 2.4 + blur + opacity ALL change in lock-step over one cubic-bezier · single rapid blow-out</p>
+    </div>
+
+    <div class="demo e-glitch" id="e-glitch">
+      <div class="stage">
+        <div class="glitch-stack">
+          <div class="chip">$1M</div>
+          <div class="chip glitch-slice s1">$1M</div>
+          <div class="chip glitch-slice s2">$1M</div>
+          <div class="chip glitch-slice s3">$1M</div>
+          <div class="chip glitch-slice s4">$1M</div>
+        </div>
+      </div>
+      <h3>Glitch out (multi-part slice)</h3>
+      <p class="caption">4 horizontal slices each glitch on different beats · 1, 2 or several visible at once · real broken-signal smear</p>
+    </div>
+
+    <div class="demo e-iris-out" id="e-iris-out">
+      <div class="stage"><div class="chip">$1M</div></div>
+      <h3>Iris close</h3>
+      <p class="caption">circular clip-path 80% → 0% · classic film closer, no hard cut needed</p>
+    </div>
+
+    <div class="demo e-disintegrate" id="e-disintegrate" data-dir="up">
+      <div class="stage">
+        <div class="strip-wrap">
+          <div class="strip"></div><div class="strip"></div><div class="strip"></div><div class="strip"></div>
+          <div class="strip"></div><div class="strip"></div><div class="strip"></div><div class="strip"></div>
+          <div class="strip"></div><div class="strip"></div><div class="strip"></div><div class="strip"></div>
+        </div>
+      </div>
+      <div class="dir-controls">
+        <button data-dir="up" class="active" title="Scatter up">↑</button>
+        <button data-dir="out" title="Scatter outward">⤢</button>
+        <button data-dir="down" title="Scatter down">↓</button>
+      </div>
+      <h3>Disintegrate · strips</h3>
+      <p class="caption">12 vertical strips scatter in chosen direction with stagger · the original Thanos energy</p>
+    </div>
+
+    <div class="demo e-particles" id="e-particles" data-dir="out">
+      <div class="stage">
+        <div class="particle-wrap">
+          <div class="chip small">$1M</div>
+          <div class="particle" style="--ox: -28px; --oy: -8px; --dx: -90px; --dy: -50px;"></div>
+          <div class="particle" style="--ox: -22px; --oy: 12px; --dx: -110px; --dy: 40px;"></div>
+          <div class="particle" style="--ox: -16px; --oy: -16px; --dx: -70px; --dy: -80px;"></div>
+          <div class="particle" style="--ox: -10px; --oy: 8px; --dx: -50px; --dy: 60px;"></div>
+          <div class="particle" style="--ox: -8px; --oy: -10px; --dx: -30px; --dy: -70px;"></div>
+          <div class="particle" style="--ox: 0px; --oy: -14px; --dx: 0px; --dy: -90px;"></div>
+          <div class="particle" style="--ox: 4px; --oy: 12px; --dx: 20px; --dy: 70px;"></div>
+          <div class="particle" style="--ox: 12px; --oy: -8px; --dx: 60px; --dy: -50px;"></div>
+          <div class="particle" style="--ox: 18px; --oy: 14px; --dx: 90px; --dy: 60px;"></div>
+          <div class="particle" style="--ox: 24px; --oy: -10px; --dx: 110px; --dy: -60px;"></div>
+          <div class="particle" style="--ox: 30px; --oy: 6px; --dx: 130px; --dy: 30px;"></div>
+          <div class="particle" style="--ox: -28px; --oy: 4px; --dx: -100px; --dy: 20px;"></div>
+          <div class="particle" style="--ox: -14px; --oy: -4px; --dx: -50px; --dy: -30px;"></div>
+          <div class="particle" style="--ox: -6px; --oy: 16px; --dx: -20px; --dy: 90px;"></div>
+          <div class="particle" style="--ox: 6px; --oy: -16px; --dx: 20px; --dy: -90px;"></div>
+          <div class="particle" style="--ox: 14px; --oy: 4px; --dx: 50px; --dy: 30px;"></div>
+          <div class="particle" style="--ox: 22px; --oy: -4px; --dx: 80px; --dy: -25px;"></div>
+          <div class="particle" style="--ox: 28px; --oy: 12px; --dx: 100px; --dy: 70px;"></div>
+          <div class="particle" style="--ox: -20px; --oy: 0px; --dx: -85px; --dy: -5px;"></div>
+          <div class="particle" style="--ox: 20px; --oy: 0px; --dx: 95px; --dy: 5px;"></div>
+          <div class="particle" style="--ox: 0px; --oy: 14px; --dx: 0px; --dy: 80px;"></div>
+          <div class="particle" style="--ox: 0px; --oy: -2px; --dx: 0px; --dy: -100px;"></div>
+          <div class="particle" style="--ox: -16px; --oy: 6px; --dx: -60px; --dy: 40px;"></div>
+          <div class="particle" style="--ox: 16px; --oy: -6px; --dx: 65px; --dy: -40px;"></div>
+        </div>
+      </div>
+      <div class="dir-controls">
+        <button data-dir="up" title="Particles fly up">↑</button>
+        <button data-dir="out" class="active" title="Particles scatter outward">⤢</button>
+        <button data-dir="down" title="Particles fall down">↓</button>
+      </div>
+      <h3>Disintegrate · particles</h3>
+      <p class="caption">chip fades + 24 small particles emerge and scatter · classic "atomise" feel</p>
+    </div>
+
+    <div class="demo e-tiles" id="e-tiles" data-dir="out">
+      <div class="stage">
+        <div class="tile-wrap">
+          <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
+          <div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div>
+        </div>
+      </div>
+      <div class="dir-controls">
+        <button data-dir="up" title="Tiles fly up">↑</button>
+        <button data-dir="out" class="active" title="Tiles scatter outward">⤢</button>
+        <button data-dir="down" title="Tiles fall down">↓</button>
+      </div>
+      <h3>Disintegrate · tiles</h3>
+      <p class="caption">8 squares form a chip shape, then split apart and scatter · "broke into pieces" feel</p>
+    </div>
+
+  </div>
+</section>
+
+<footer class="fineprint">
+  Demo object: warm-white "$1M" chip on dark stage. Same across every card so the motion is what changes.<br>
+  Animations are CSS — only the directional-control cards use a sprinkle of JS to swap animation per click.<br>
+  Loop: 3.6s each. Aspect: 16:9 to match the rest of the library.<br>
+  Tell me which you like, which you don't, and we tune from there.
+</footer>
+
+<script>
+  /* Directional + speed controls on per-card basis. Click button → sets data-dir or
+     data-speed on parent card → CSS swaps animation → JS forces re-trigger from frame 0. */
+  function setupControlSet(controlsSelector, dataAttr) {
+    document.querySelectorAll(controlsSelector).forEach(controls => {
+      const card = controls.closest('.demo');
+      if (!card) return;
+      controls.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          const val = btn.getAttribute(dataAttr);
+          if (val === null) return;
+          card.setAttribute(dataAttr, val);
+          controls.querySelectorAll('button').forEach(b => {
+            b.classList.toggle('active', b === btn);
+          });
+          // Restart animation on every animated descendant so the new direction/speed plays from frame 0
+          const animated = card.querySelectorAll('.chip, .chip-wrap, .strip, .particle, .tile, .glitch-slice');
+          animated.forEach(el => {
+            el.style.animation = 'none';
+            void el.offsetHeight;
+            el.style.animation = '';
+          });
+        });
+      });
+    });
+  }
+  setupControlSet('.dir-controls',   'data-dir');
+  setupControlSet('.speed-controls', 'data-speed');
+</script>
+
+</body>
+</html>

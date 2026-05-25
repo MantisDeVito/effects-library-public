@@ -1,0 +1,959 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lower thirds · Callum's Effects Library</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --card: #141414;
+    --border: #262626;
+    --border-hover: #3a3a3a;
+    --text: #ececec;
+    --muted: #888;
+    --accent: #ff7a1a;
+    --accent-2: #ff3b30;
+    --display: 'Impact', 'Haettenschweiler', 'Arial Narrow Bold', sans-serif;
+    --mono: 'SF Mono', Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: 32px 40px 80px; max-width: 1480px; margin: 0 auto;
+  }
+
+  .topnav {
+    display: flex; align-items: flex-end; gap: 24px;
+    padding-bottom: 20px; border-bottom: 1px solid var(--border);
+    margin-bottom: 28px; flex-wrap: wrap;
+  }
+  .topnav .brand {
+    font-family: var(--display); font-size: 18px;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text); text-decoration: none; white-space: nowrap;
+    display: inline-block; line-height: 1.1;
+  }
+  .topnav .brand .brand-top {
+    display: block; font-size: 12px; letter-spacing: 1.5px;
+    color: var(--accent); margin-bottom: 2px;
+  }
+  .topnav .brand:hover { color: var(--accent); }
+  .topnav nav { display: flex; gap: 20px; font-size: 13px; letter-spacing: 0.3px; text-transform: uppercase; flex-wrap: wrap; }
+  .topnav nav a { color: var(--muted); text-decoration: none; transition: color 120ms; }
+  .topnav nav a:hover { color: var(--text); }
+  .topnav nav a.current { color: var(--accent); }
+
+  header.page-header { padding-bottom: 24px; margin-bottom: 40px; }
+  header.page-header h1 {
+    font-family: var(--display); font-size: 44px;
+    margin: 0 0 8px; letter-spacing: -0.5px; text-transform: uppercase;
+  }
+  header.page-header p { margin: 0; color: var(--muted); max-width: 780px; }
+
+  section { margin-bottom: 56px; }
+  section h2 {
+    font-family: var(--display); font-size: 24px;
+    text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px;
+  }
+  section > p.intro { color: var(--muted); max-width: 780px; margin: 0 0 24px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+  }
+  .demo {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 4px; padding: 18px;
+    cursor: pointer; transition: border-color 120ms, transform 120ms;
+    position: relative;
+  }
+  .demo:hover { border-color: var(--border-hover); }
+  .demo:active { transform: translateY(1px); }
+  .stage {
+    aspect-ratio: 16 / 9; background: #050505; border-radius: 3px;
+    position: relative; overflow: hidden; margin-bottom: 14px;
+    display: flex; align-items: flex-end; justify-content: flex-start;
+    user-select: none; -webkit-user-select: none;
+  }
+  /* Faint base plate so the lower-third has something to sit on visually. */
+  .stage::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 30% 30%, #1a1a1a 0%, #050505 70%);
+    z-index: 0;
+  }
+  .demo h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; letter-spacing: 0.3px; }
+  .demo p.caption {
+    margin: 0; color: var(--muted); font-size: 13px;
+    font-family: var(--mono); line-height: 1.5;
+  }
+  .replay-hint {
+    position: absolute; top: 12px; right: 14px;
+    font-size: 10px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 1px; opacity: 0; transition: opacity 160ms;
+  }
+  .replay-hint::before { content: 'hover to loop'; }
+  .demo:hover .replay-hint { opacity: 1; }
+  .demo:fullscreen .replay-hint { opacity: 0.85; top: 28px; right: 32px; font-size: 13px; }
+  .demo:fullscreen .replay-hint::before { content: 'click to play · esc to close'; }
+
+  /* ========================================================== */
+  /* Lower-third common scaffolding                              */
+  /* ========================================================== */
+
+  .lt {
+    position: absolute;
+    bottom: 11%; left: 7%;
+    z-index: 2;
+    font-family: var(--display);
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    pointer-events: none;
+  }
+  .lt .name { font-size: 18px; letter-spacing: 0.8px; line-height: 1; white-space: nowrap; }
+  .lt .role {
+    font-family: var(--mono); font-weight: 500;
+    font-size: 10px; letter-spacing: 2px; color: var(--muted);
+    text-transform: uppercase; margin-top: 4px; white-space: nowrap;
+  }
+
+  /* Three-beat cycle base — every effect runs 0–32% in, 32–62% hold, 62–92% out. */
+
+  /* === 1. Slide-in bar ====================================== */
+  .fx-bar .lt-bar {
+    background: var(--accent);
+    padding: 8px 14px 8px 12px;
+    color: #050505;
+    transform: translateX(-110%);
+  }
+  .fx-bar .lt-bar .role { color: rgba(0,0,0,0.55); }
+  .fx-bar.playing .lt-bar { animation: lt-bar-in 3200ms cubic-bezier(0.4,0,0.2,1); }
+  @keyframes lt-bar-in {
+    0%   { transform: translateX(-110%); }
+    14%  { transform: translateX(0); }
+    62%  { transform: translateX(0); }
+    78%  { transform: translateX(110%); }
+    100% { transform: translateX(110%); }
+  }
+
+  /* === 2. Animated bracket ================================== */
+  .fx-bracket .lt-bracket { display: flex; align-items: center; gap: 10px; }
+  .fx-bracket .lt-bracket .b {
+    width: 0; height: 38px; border: 2px solid var(--accent);
+    border-right: 0; opacity: 0;
+  }
+  .fx-bracket .lt-bracket .b.right { border-left: 0; border-right: 2px solid var(--accent); }
+  .fx-bracket .lt-bracket .name-block { opacity: 0; transform: translateY(4px); }
+  .fx-bracket.playing .b.left  { animation: lt-brk-l 3200ms cubic-bezier(0.4,0,0.2,1); }
+  .fx-bracket.playing .b.right { animation: lt-brk-r 3200ms cubic-bezier(0.4,0,0.2,1); }
+  .fx-bracket.playing .name-block { animation: lt-brk-text 3200ms cubic-bezier(0.4,0,0.2,1); }
+  @keyframes lt-brk-l {
+    0%   { width: 0; opacity: 0; }
+    8%   { width: 0; opacity: 1; }
+    18%  { width: 12px; opacity: 1; }
+    62%  { width: 12px; opacity: 1; }
+    74%  { width: 0; opacity: 1; }
+    82%  { width: 0; opacity: 0; }
+    100% { width: 0; opacity: 0; }
+  }
+  @keyframes lt-brk-r {
+    0%   { width: 0; opacity: 0; }
+    8%   { width: 0; opacity: 1; }
+    18%  { width: 12px; opacity: 1; }
+    62%  { width: 12px; opacity: 1; }
+    74%  { width: 0; opacity: 1; }
+    82%  { width: 0; opacity: 0; }
+    100% { width: 0; opacity: 0; }
+  }
+  @keyframes lt-brk-text {
+    0%   { opacity: 0; transform: translateY(4px); }
+    22%  { opacity: 0; transform: translateY(4px); }
+    32%  { opacity: 1; transform: translateY(0); }
+    62%  { opacity: 1; transform: translateY(0); }
+    78%  { opacity: 0; transform: translateY(-2px); }
+    100% { opacity: 0; }
+  }
+
+  /* === 3. Two-line stack with accent line =================== */
+  .fx-stack .lt-stack { display: flex; flex-direction: column; align-items: flex-start; }
+  .fx-stack .lt-stack .accent-line {
+    width: 0; height: 2px; background: var(--accent);
+    margin: 6px 0;
+  }
+  .fx-stack .name { opacity: 0; transform: translateY(8px); }
+  .fx-stack .role { opacity: 0; transform: translateY(8px); }
+  .fx-stack.playing .name        { animation: lt-stack-name 3200ms cubic-bezier(0.4,0,0.2,1); }
+  .fx-stack.playing .accent-line { animation: lt-stack-line 3200ms cubic-bezier(0.4,0,0.2,1); }
+  .fx-stack.playing .role        { animation: lt-stack-role 3200ms cubic-bezier(0.4,0,0.2,1); }
+  @keyframes lt-stack-name {
+    0%   { opacity: 0; transform: translateY(8px); }
+    14%  { opacity: 1; transform: translateY(0); }
+    62%  { opacity: 1; transform: translateY(0); }
+    78%  { opacity: 0; transform: translateY(-4px); }
+    100% { opacity: 0; }
+  }
+  @keyframes lt-stack-line {
+    0%   { width: 0; }
+    18%  { width: 0; }
+    28%  { width: 70px; }
+    62%  { width: 70px; }
+    72%  { width: 0; }
+    100% { width: 0; }
+  }
+  @keyframes lt-stack-role {
+    0%   { opacity: 0; transform: translateY(8px); }
+    24%  { opacity: 0; transform: translateY(8px); }
+    34%  { opacity: 1; transform: translateY(0); }
+    62%  { opacity: 1; transform: translateY(0); }
+    72%  { opacity: 0; transform: translateY(-4px); }
+    100% { opacity: 0; }
+  }
+
+  /* === 4. Logo-prefix slide ================================= */
+  .fx-prefix .lt-prefix { display: flex; align-items: center; gap: 12px; }
+  .fx-prefix .logo-square {
+    width: 32px; height: 32px; background: var(--accent);
+    color: #050505; display: flex; align-items: center; justify-content: center;
+    font-family: var(--display); font-weight: 900; font-size: 18px;
+    letter-spacing: -1px;
+    transform: translateX(-60px); opacity: 0;
+  }
+  .fx-prefix .name-block { transform: translateX(-12px); opacity: 0; }
+  .fx-prefix.playing .logo-square { animation: lt-pre-square 3200ms cubic-bezier(0.4,0,0.2,1); }
+  .fx-prefix.playing .name-block  { animation: lt-pre-text 3200ms cubic-bezier(0.4,0,0.2,1); }
+  @keyframes lt-pre-square {
+    0%   { transform: translateX(-60px); opacity: 0; }
+    16%  { transform: translateX(0); opacity: 1; }
+    62%  { transform: translateX(0); opacity: 1; }
+    74%  { transform: translateX(0); opacity: 1; }
+    82%  { transform: translateX(-60px); opacity: 0; }
+    100% { transform: translateX(-60px); opacity: 0; }
+  }
+  @keyframes lt-pre-text {
+    0%   { transform: translateX(-12px); opacity: 0; }
+    20%  { transform: translateX(-12px); opacity: 0; }
+    32%  { transform: translateX(0); opacity: 1; }
+    62%  { transform: translateX(0); opacity: 1; }
+    74%  { transform: translateX(40px); opacity: 0; }
+    100% { opacity: 0; }
+  }
+
+  /* === 5. Underline write-on ================================ */
+  .fx-underline .name { opacity: 0; transform: translateY(6px); }
+  .fx-underline .lt-underline {
+    width: 0; height: 2px; background: var(--accent);
+    margin-top: 6px;
+  }
+  .fx-underline .role { opacity: 0; }
+  .fx-underline.playing .name           { animation: lt-und-name 3200ms cubic-bezier(0.4,0,0.2,1); }
+  .fx-underline.playing .lt-underline   { animation: lt-und-line 3200ms cubic-bezier(0.4,0,0.2,1); }
+  .fx-underline.playing .role           { animation: lt-und-role 3200ms cubic-bezier(0.4,0,0.2,1); }
+  @keyframes lt-und-name {
+    0%   { opacity: 0; transform: translateY(6px); }
+    14%  { opacity: 1; transform: translateY(0); }
+    72%  { opacity: 1; }
+    82%  { opacity: 0; }
+    100% { opacity: 0; }
+  }
+  @keyframes lt-und-line {
+    0%   { width: 0; }
+    18%  { width: 0; }
+    36%  { width: 110px; }
+    72%  { width: 110px; }
+    82%  { width: 0; }
+    100% { width: 0; }
+  }
+  @keyframes lt-und-role {
+    0%   { opacity: 0; }
+    34%  { opacity: 0; }
+    44%  { opacity: 1; }
+    72%  { opacity: 1; }
+    82%  { opacity: 0; }
+    100% { opacity: 0; }
+  }
+
+  /* === 6. Box outline draw + fill =========================== */
+  .fx-box .lt-box-frame {
+    position: relative;
+    padding: 10px 16px;
+  }
+  .fx-box .lt-box-frame .edge {
+    position: absolute; background: var(--accent);
+  }
+  .fx-box .lt-box-frame .edge.t { top: 0;    left: 0;  height: 2px; width: 0; }
+  .fx-box .lt-box-frame .edge.r { top: 0;    right: 0; width: 2px;  height: 0; }
+  .fx-box .lt-box-frame .edge.b { bottom: 0; right: 0; height: 2px; width: 0; }
+  .fx-box .lt-box-frame .edge.l { bottom: 0; left: 0;  width: 2px;  height: 0; }
+  .fx-box .lt-box-frame .name-block { opacity: 0; }
+  .fx-box.playing .edge.t      { animation: lt-box-t 3200ms cubic-bezier(0.4,0,0.2,1); }
+  .fx-box.playing .edge.r      { animation: lt-box-r 3200ms cubic-bezier(0.4,0,0.2,1); }
+  .fx-box.playing .edge.b      { animation: lt-box-b 3200ms cubic-bezier(0.4,0,0.2,1); }
+  .fx-box.playing .edge.l      { animation: lt-box-l 3200ms cubic-bezier(0.4,0,0.2,1); }
+  .fx-box.playing .name-block  { animation: lt-box-text 3200ms cubic-bezier(0.4,0,0.2,1); }
+  @keyframes lt-box-t {
+    0% { width: 0; }   8% { width: 0; }   18% { width: 100%; }
+    72% { width: 100%; } 82% { width: 0; left: 100%; transform: translateX(-100%); } 100% { width: 0; }
+  }
+  @keyframes lt-box-r {
+    0% { height: 0; }  16% { height: 0; }  26% { height: 100%; }
+    72% { height: 100%; } 82% { height: 0; top: 100%; } 100% { height: 0; }
+  }
+  @keyframes lt-box-b {
+    0% { width: 0; }   24% { width: 0; }   34% { width: 100%; }
+    72% { width: 100%; } 82% { width: 0; } 100% { width: 0; }
+  }
+  @keyframes lt-box-l {
+    0% { height: 0; }  32% { height: 0; }  42% { height: 100%; }
+    72% { height: 100%; } 82% { height: 0; } 100% { height: 0; }
+  }
+  @keyframes lt-box-text {
+    0% { opacity: 0; }   42% { opacity: 0; }   54% { opacity: 1; }
+    72% { opacity: 1; } 82% { opacity: 0; } 100% { opacity: 0; }
+  }
+
+  /* === 7. Diagonal cut wipe ================================= */
+  .fx-cut .lt-cut {
+    position: relative;
+    padding: 8px 26px 8px 14px;
+    background: var(--accent);
+    color: #050505;
+    clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
+    -webkit-clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
+  }
+  .fx-cut .lt-cut .role { color: rgba(0,0,0,0.55); }
+  .fx-cut.playing .lt-cut { animation: lt-cut-in 3200ms cubic-bezier(0.4,0,0.2,1); }
+  @keyframes lt-cut-in {
+    0%   { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
+           -webkit-clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); }
+    18%  { clip-path: polygon(0 0, 100% 0, 88% 100%, 0 100%);
+           -webkit-clip-path: polygon(0 0, 100% 0, 88% 100%, 0 100%); }
+    62%  { clip-path: polygon(0 0, 100% 0, 88% 100%, 0 100%);
+           -webkit-clip-path: polygon(0 0, 100% 0, 88% 100%, 0 100%); }
+    82%  { clip-path: polygon(100% 0, 100% 0, 100% 100%, 100% 100%);
+           -webkit-clip-path: polygon(100% 0, 100% 0, 100% 100%, 100% 100%); }
+    100% { clip-path: polygon(100% 0, 100% 0, 100% 100%, 100% 100%);
+           -webkit-clip-path: polygon(100% 0, 100% 0, 100% 100%, 100% 100%); }
+  }
+
+  /* === 8. Typewriter line + sub-line ======================== */
+  .fx-typewriter { font-family: var(--mono); }
+  .fx-typewriter .lt-tw .name {
+    font-family: var(--mono); font-weight: 700;
+    font-size: 14px; letter-spacing: 1px;
+    overflow: hidden; white-space: nowrap; width: 0;
+    border-right: 2px solid var(--accent);
+  }
+  .fx-typewriter .lt-tw .role {
+    font-family: var(--mono); overflow: hidden; white-space: nowrap; width: 0;
+    border-right: 2px solid var(--accent);
+  }
+  .fx-typewriter.playing .lt-tw .name { animation: lt-type-name 3200ms steps(13, end); }
+  .fx-typewriter.playing .lt-tw .role { animation: lt-type-role 3200ms steps(12, end); }
+  @keyframes lt-type-name {
+    0%   { width: 0; }
+    8%   { width: 0; }
+    32%  { width: 13ch; }
+    62%  { width: 13ch; }
+    72%  { width: 13ch; border-right-color: transparent; }
+    78%  { width: 0; }
+    100% { width: 0; }
+  }
+  @keyframes lt-type-role {
+    0%   { width: 0; }
+    32%  { width: 0; }
+    50%  { width: 12ch; }
+    62%  { width: 12ch; }
+    72%  { width: 12ch; border-right-color: transparent; }
+    78%  { width: 0; }
+    100% { width: 0; }
+  }
+
+  /* === 9. News strip ======================================== */
+  .fx-news .stage::after {
+    content: '';
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 36px;
+    background: linear-gradient(180deg, transparent, rgba(0,0,0,0.7));
+    z-index: 1;
+  }
+  .fx-news .lt-news {
+    bottom: 0; left: 0; right: 0;
+    display: flex; align-items: center;
+    height: 24px; padding: 0 12px;
+    background: linear-gradient(90deg, var(--accent-2), var(--accent));
+    color: #fff;
+    transform: translateY(110%);
+    z-index: 3;
+  }
+  .fx-news .lt-news .pin {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #fff; margin-right: 10px; flex: 0 0 8px;
+  }
+  .fx-news .lt-news .label {
+    font-family: var(--display); letter-spacing: 1px; font-size: 13px;
+    margin-right: 12px; flex: 0 0 auto; color: #fff;
+  }
+  .fx-news .lt-news .ticker {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 1px;
+    color: #fff; flex: 1 1 auto; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .fx-news.playing .lt-news { animation: lt-news-in 3200ms cubic-bezier(0.4,0,0.2,1); }
+  .fx-news.playing .ticker  { animation: lt-news-ticker 3200ms linear; }
+  @keyframes lt-news-in {
+    0%   { transform: translateY(110%); }
+    14%  { transform: translateY(0); }
+    78%  { transform: translateY(0); }
+    92%  { transform: translateY(110%); }
+    100% { transform: translateY(110%); }
+  }
+  @keyframes lt-news-ticker {
+    0%   { transform: translateX(0); }
+    18%  { transform: translateX(0); }
+    78%  { transform: translateX(-40%); }
+    100% { transform: translateX(-40%); }
+  }
+
+  /* === 10. Podcast strip with avatar ======================== */
+  .fx-podcast .lt-pod {
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(20, 20, 20, 0.85);
+    backdrop-filter: blur(6px);
+    border-left: 3px solid var(--accent);
+    padding: 8px 14px 8px 10px;
+    transform: translateX(-110%);
+    border-radius: 0 6px 6px 0;
+  }
+  .fx-podcast .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ff9c4d, var(--accent-2));
+    flex: 0 0 36px;
+    display: flex; align-items: center; justify-content: center;
+    color: #050505; font-family: var(--display); font-size: 16px;
+    letter-spacing: 0;
+  }
+  .fx-podcast .role { font-family: var(--mono); }
+  .fx-podcast.playing .lt-pod { animation: lt-pod-in 3200ms cubic-bezier(0.4,0,0.2,1); }
+  @keyframes lt-pod-in {
+    0%   { transform: translateX(-110%); }
+    14%  { transform: translateX(0); }
+    74%  { transform: translateX(0); }
+    88%  { transform: translateX(-110%); }
+    100% { transform: translateX(-110%); }
+  }
+
+  /* === 11. Bracket-accent ==================================== */
+  .fx-accent .lt-acc { display: flex; align-items: stretch; gap: 10px; }
+  .fx-accent .lt-acc .bar {
+    width: 4px; background: var(--accent);
+    transform: scaleY(0); transform-origin: 50% 100%;
+  }
+  .fx-accent .lt-acc .name-block {
+    opacity: 0; transform: translateX(-6px);
+  }
+  .fx-accent.playing .bar         { animation: lt-acc-bar 3200ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .fx-accent.playing .name-block  { animation: lt-acc-text 3200ms cubic-bezier(0.4,0,0.2,1); }
+  @keyframes lt-acc-bar {
+    0%   { transform: scaleY(0); }
+    14%  { transform: scaleY(1.18); }
+    24%  { transform: scaleY(1); }
+    72%  { transform: scaleY(1); }
+    84%  { transform: scaleY(0); }
+    100% { transform: scaleY(0); }
+  }
+  @keyframes lt-acc-text {
+    0%   { opacity: 0; transform: translateX(-6px); }
+    20%  { opacity: 0; transform: translateX(-6px); }
+    32%  { opacity: 1; transform: translateX(0); }
+    72%  { opacity: 1; }
+    82%  { opacity: 0; transform: translateX(-3px); }
+    100% { opacity: 0; }
+  }
+
+  /* === 12. Progress underline =============================== */
+  .fx-progress .lt-prog .name { opacity: 0; transform: translateY(4px); }
+  .fx-progress .lt-prog .progress-track {
+    width: 140px; height: 3px; background: rgba(255,255,255,0.18);
+    margin-top: 6px; position: relative; overflow: hidden;
+    opacity: 0;
+  }
+  .fx-progress .lt-prog .progress-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 0; background: var(--accent);
+  }
+  .fx-progress .lt-prog .role {
+    opacity: 0;
+    margin-top: 4px;
+  }
+  .fx-progress.playing .name              { animation: lt-prog-name 3200ms cubic-bezier(0.4,0,0.2,1); }
+  .fx-progress.playing .progress-track    { animation: lt-prog-track 3200ms cubic-bezier(0.4,0,0.2,1); }
+  .fx-progress.playing .progress-fill     { animation: lt-prog-fill 3200ms cubic-bezier(0.65,0,0.35,1); }
+  .fx-progress.playing .role              { animation: lt-prog-role 3200ms cubic-bezier(0.4,0,0.2,1); }
+  @keyframes lt-prog-name {
+    0%   { opacity: 0; transform: translateY(4px); }
+    14%  { opacity: 1; transform: translateY(0); }
+    74%  { opacity: 1; }
+    84%  { opacity: 0; }
+    100% { opacity: 0; }
+  }
+  @keyframes lt-prog-track {
+    0%   { opacity: 0; }
+    16%  { opacity: 0; }
+    26%  { opacity: 1; }
+    74%  { opacity: 1; }
+    84%  { opacity: 0; }
+    100% { opacity: 0; }
+  }
+  @keyframes lt-prog-fill {
+    0%   { width: 0; }
+    26%  { width: 0; }
+    62%  { width: 100%; }
+    74%  { width: 100%; }
+    84%  { width: 100%; }
+    100% { width: 100%; }
+  }
+  @keyframes lt-prog-role {
+    0%   { opacity: 0; }
+    44%  { opacity: 0; }
+    56%  { opacity: 1; }
+    74%  { opacity: 1; }
+    84%  { opacity: 0; }
+    100% { opacity: 0; }
+  }
+
+  footer {
+    margin-top: 80px; padding-top: 32px;
+    border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 13px; max-width: 780px;
+  }
+
+  .demo:fullscreen {
+    background: var(--bg); padding: 40px;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center; cursor: pointer;
+  }
+  .demo:fullscreen .stage {
+    width: min(90vw, 160vh); max-height: 80vh;
+    aspect-ratio: 16 / 9; margin-bottom: 24px;
+  }
+  .demo:fullscreen h3 {
+    font-family: var(--display); font-size: 28px;
+    letter-spacing: 1px; text-transform: uppercase;
+    text-align: center; margin: 0 0 8px;
+  }
+  .demo:fullscreen p.caption { text-align: center; max-width: 720px; font-size: 15px; }
+
+/* === injected topnav css === */
+/* Grouped-bucket topnav — dropdowns for MOTION / VISUAL / CINEMATOGRAPHY / TOOLS.
+   Extends the existing .topnav base styles (which already define brand + link colours).
+   Selectors scoped to .topnav nav .group — safe to inject into any page. */
+.topnav nav { gap: 24px; }
+.topnav nav .group { position: relative; padding-bottom: 12px; margin-bottom: -12px; }
+.topnav nav .group .group-head {
+  color: var(--muted); text-decoration: none; cursor: default;
+  display: inline-block; padding: 4px 0;
+  text-transform: uppercase; letter-spacing: 0.3px;
+  font-weight: 500;
+}
+.topnav nav .group a.group-head { cursor: pointer; }
+.topnav nav .group:hover .group-head,
+.topnav nav .group:focus-within .group-head { color: var(--text); }
+.topnav nav .group.current .group-head { color: var(--accent); }
+/* Invisible bridge — covers the gap between group-head and dropdown so hover doesn't drop. */
+.topnav nav .group::after {
+  content: ''; position: absolute;
+  top: 100%; left: -16px; right: -16px;
+  height: 14px;
+  pointer-events: auto;
+}
+.topnav nav .group .dropdown {
+  position: absolute; top: calc(100% + 8px); left: -8px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 4px; padding: 6px 0;
+  display: none; flex-direction: column; min-width: 180px;
+  z-index: 100;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.topnav nav .group:hover .dropdown,
+.topnav nav .group:focus-within .dropdown { display: flex; }
+/* Small buffer above the first dropdown item so the mouse can land softly. */
+.topnav nav .group .dropdown::before {
+  content: ''; position: absolute; top: -10px; left: 0; right: 0; height: 10px;
+}
+.topnav nav .group .dropdown a {
+  padding: 8px 16px; color: var(--muted); text-decoration: none;
+  transition: color 120ms, background 120ms;
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.topnav nav .group .dropdown a:hover { color: var(--text); background: rgba(255, 122, 26, 0.06); }
+.topnav nav .group .dropdown a.current { color: var(--accent); }
+/* === end injected topnav css === */
+</style>
+
+<script src="lib/lazy-media.js"></script>
+<script src="lib/favorites.js"></script>
+<script src="_solo.js" defer></script>
+</head>
+<body>
+
+<div class="topnav">
+  <a href="index.html" class="brand"><span class="brand-top">Callum's</span>Effects Library</a>
+  <nav>
+    <div class="group" data-group="search">
+      <a href="search.html" class="group-head">Search</a>
+    </div>
+
+    <div class="group" data-group="icons">
+      <a href="icons.html" class="group-head">Icons</a>
+    </div>
+
+    <div class="group current" data-group="text">
+      <a href="text.html" class="group-head">Text</a>
+      <div class="dropdown">
+        <a href="text.html" data-page="text">Text</a>
+        <a href="lower-thirds.html" class="current" data-page="lower-thirds">Lower thirds</a>
+        <a href="captions.html" data-page="captions">Captions</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="music">
+      <a href="music.html" class="group-head">Music</a>
+    </div>
+
+    <div class="group" data-group="motion">
+      <span class="group-head">Motion</span>
+      <div class="dropdown">
+        <a href="entrances.html" data-page="entrances">Entrances &amp; exits</a>
+        <a href="mograph.html" data-page="mograph">Mograph</a>
+        <a href="beats.html" data-page="beats">Beats</a>
+        <a href="shapes.html" data-page="shapes">Shapes</a>
+        <a href="logos.html" data-page="logos">Logos</a>
+        <a href="ease-curves.html" data-page="ease-curves">Ease curves</a>
+        <a href="speedometer.html" data-page="speedometer">Speedometer</a>
+        <a href="scribbles.html" data-page="scribbles">Scribbles</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="visual">
+      <span class="group-head">Visual</span>
+      <div class="dropdown">
+        <a href="colours.html" data-page="colours">Colours</a>
+        <a href="atmosphere.html" data-page="atmosphere">Atmosphere</a>
+        <a href="overlays.html" data-page="overlays">Overlays</a>
+        <a href="glitch.html" data-page="glitch">Glitch</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="cinematography">
+      <span class="group-head">Cinematography</span>
+      <div class="dropdown">
+        <a href="camera-moves.html" data-page="camera-moves">Camera moves</a>
+        <a href="transitions.html" data-page="transitions">Transitions</a>
+        <a href="lens.html" data-page="lens">Lens</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="tools">
+      <span class="group-head">Tools &amp; assets</span>
+      <div class="dropdown">
+        <a href="common-sfx.html" data-page="common-sfx">Common SFX</a>
+        <a href="sound-fx.html" data-page="sound-fx">Sound FX (AI)</a>
+        <a href="ai-toolchain.html" data-page="ai-toolchain">AI toolchain</a>
+        <a href="templates.html" data-page="templates">Templates</a>
+        <a href="shared-library/browser.html" data-page="browser">Shared library</a>
+        <a href="shared-library/Mograph/preview.html" data-page="mograph-preview">Mograph preview</a>
+        <a href="shared-library/Greenscreen/index.html" data-page="greenscreen">Greenscreen templates</a>
+        <a href="file:///D:/AIIMS/LIGHT%20LEAKS/index.html" data-page="light-leaks-d">Light leaks (D:)</a>
+      </div>
+    </div>
+  </nav>
+</div>
+
+<header class="page-header">
+  <h1>Lower thirds</h1>
+  <p>Name banners, sub-lines, broadcast strips. Every lower third is a three-beat performance: in (1.0–1.5 s), hold (~1.5 s), out (~1.0 s). Below, twelve designs across the corporate / kinetic / broadcast / podcast ranges, all driving the same placeholder "CASEY MORGAN — PRODUCT LEAD" so you can compare the personality of each motion without the words changing.</p>
+</header>
+
+<section>
+  <h2>Lower thirds</h2>
+  <p class="intro">Pick the rhythm that suits the show: bars feel corporate, brackets feel editorial, news strips feel broadcast, podcast strips feel social. Hold time is consistent across the set so you can swap between them on the same project without retiming each.</p>
+  <div class="grid">
+
+    <div class="demo fx-bar" id="slide-bar">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="lt lt-bar">
+          <div class="name">Casey Morgan</div>
+          <div class="role">Product Lead</div>
+        </div>
+      </div>
+      <h3>Slide-in bar</h3>
+      <p class="caption">Solid accent bar slides in from the left, holds, exits right. The corporate default. AE: position keyframes on a shape layer with ease-in. 32% in / 30% hold / 30% out / 8% rest.</p>
+    </div>
+
+    <div class="demo fx-bracket" id="animated-bracket">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="lt lt-bracket">
+          <div class="b left"></div>
+          <div class="name-block">
+            <div class="name">Casey Morgan</div>
+            <div class="role">Product Lead</div>
+          </div>
+          <div class="b right"></div>
+        </div>
+      </div>
+      <h3>Animated brackets</h3>
+      <p class="caption">Brackets draw in either side, name + role fade in between them. Editorial / kinetic feel. AE: trim-paths on shape layer, opacity keyframes on text. Faster in than out.</p>
+    </div>
+
+    <div class="demo fx-stack" id="two-line-stack">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="lt lt-stack">
+          <div class="name">Casey Morgan</div>
+          <div class="accent-line"></div>
+          <div class="role">Product Lead</div>
+        </div>
+      </div>
+      <h3>Two-line stack with accent</h3>
+      <p class="caption">Name slides up first, accent line draws between, role appears below. Three discrete beats. AE: cascade text-layer position keyframes 100ms apart, scale a shape on its X-axis for the line.</p>
+    </div>
+
+    <div class="demo fx-prefix" id="logo-prefix">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="lt lt-prefix">
+          <div class="logo-square">A</div>
+          <div class="name-block">
+            <div class="name">Casey Morgan</div>
+            <div class="role">Product Lead</div>
+          </div>
+        </div>
+      </div>
+      <h3>Logo-prefix slide</h3>
+      <p class="caption">Branded square slides in first, name slides in after it. Use when there's a brand mark to plant alongside the contributor. AE: position keyframes, 200ms offset between square and text.</p>
+    </div>
+
+    <div class="demo fx-underline" id="underline-write-on">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="lt">
+          <div class="name">Casey Morgan</div>
+          <div class="lt-underline"></div>
+          <div class="role">Product Lead</div>
+        </div>
+      </div>
+      <h3>Underline write-on</h3>
+      <p class="caption">Name appears, accent line writes left-to-right beneath it, role appears below. Minimal, hand-drawn-friendly. AE: trim-paths on stroke for the underline. Works clean on white-on-black.</p>
+    </div>
+
+    <div class="demo fx-box" id="box-outline-draw">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="lt">
+          <div class="lt-box-frame">
+            <div class="edge t"></div>
+            <div class="edge r"></div>
+            <div class="edge b"></div>
+            <div class="edge l"></div>
+            <div class="name-block">
+              <div class="name">Casey Morgan</div>
+              <div class="role">Product Lead</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <h3>Box outline draw</h3>
+      <p class="caption">Rectangle perimeter draws clockwise (top → right → bottom → left), then text fades in inside. Geometric editorial. AE: stroke-on each side of a four-segment shape, sequential trim-paths.</p>
+    </div>
+
+    <div class="demo fx-cut" id="diagonal-cut">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="lt">
+          <div class="lt-cut">
+            <div class="name">Casey Morgan</div>
+            <div class="role">Product Lead</div>
+          </div>
+        </div>
+      </div>
+      <h3>Diagonal cut wipe</h3>
+      <p class="caption">Parallelogram wipes in from the left and out to the right, sharp 12° angle on the trailing edge. Punchy editorial. AE: clip-path on a precomp via Set Matte, or shape-layer mask wipe.</p>
+    </div>
+
+    <div class="demo fx-typewriter" id="typewriter-line">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="lt lt-tw">
+          <div class="name">CASEY MORGAN</div>
+          <div class="role">PRODUCT LEAD</div>
+        </div>
+      </div>
+      <h3>Typewriter line + sub-line</h3>
+      <p class="caption">Name types in left-to-right with caret, then sub-line types in below. Terminal aesthetic. AE: Linear Wipe with Transition Completion on text, or steps() in CSS. Caret blinks then fades.</p>
+    </div>
+
+    <div class="demo fx-news" id="news-strip">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="lt-news">
+          <div class="pin"></div>
+          <div class="label">Live</div>
+          <div class="ticker">Sydney · Casey Morgan reports — Product Lead live from the floor</div>
+        </div>
+      </div>
+      <h3>News strip</h3>
+      <p class="caption">Full-width broadcast bar slides up from the bottom, ticker scrolls horizontally inside. Live-news flavour. AE: a shape layer position from 110% to 0% Y, plus a text-layer position scrolling on the X.</p>
+    </div>
+
+    <div class="demo fx-podcast" id="podcast-strip">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="lt-pod">
+          <div class="avatar">CM</div>
+          <div class="name-block">
+            <div class="name">Casey Morgan</div>
+            <div class="role">Episode 42 — Product</div>
+          </div>
+        </div>
+      </div>
+      <h3>Podcast strip with avatar</h3>
+      <p class="caption">Avatar circle + name + episode line slide in as a unit on a translucent backdrop with accent stripe. Social/podcast feel. AE: precomp the strip, position keyframe with backdrop-blur via Camera Lens Blur.</p>
+    </div>
+
+    <div class="demo fx-accent" id="bracket-accent">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="lt lt-acc">
+          <div class="bar"></div>
+          <div class="name-block">
+            <div class="name">Casey Morgan</div>
+            <div class="role">Product Lead</div>
+          </div>
+        </div>
+      </div>
+      <h3>Vertical accent bar</h3>
+      <p class="caption">Tall thin accent bar pops up from below with 18% overshoot, name + role slide in to its right. Confident kinetic-bold. AE: scale Y on the bar with overshoot ease, text position with 200ms offset.</p>
+    </div>
+
+    <div class="demo fx-progress" id="progress-underline">
+      <span class="replay-hint"></span>
+      <div class="stage">
+        <div class="lt lt-prog">
+          <div class="name">Casey Morgan</div>
+          <div class="progress-track">
+            <div class="progress-fill"></div>
+          </div>
+          <div class="role">Product Lead</div>
+        </div>
+      </div>
+      <h3>Progress underline</h3>
+      <p class="caption">Name appears, a progress bar fills 0 → 100% beneath it, role appears halfway through. Data / on-brand for product or stat-driven content. AE: shape layer scale-X 0 to 1 with linear timing.</p>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  Twelve lower thirds, one placeholder name. The motion personality is the variable — switch the words in your project, the rhythm holds.
+</footer>
+
+<script>
+  function retrigger(el) {
+    el.classList.remove('playing');
+    void el.offsetWidth;
+    el.classList.add('playing');
+  }
+
+  function parseTime(s) {
+    s = (s || '').trim();
+    if (!s || s === '0s') return 0;
+    if (s.endsWith('ms')) return parseFloat(s);
+    if (s.endsWith('s'))  return parseFloat(s) * 1000;
+    return 0;
+  }
+  function maxAnimationMs(root) {
+    let max = 0;
+    const nodes = [root, ...root.querySelectorAll('*')];
+    nodes.forEach(el => {
+      const cs = getComputedStyle(el);
+      if (!cs.animationName || cs.animationName === 'none') return;
+      const names = cs.animationName.split(',');
+      const durs  = cs.animationDuration.split(',');
+      const dels  = cs.animationDelay.split(',');
+      for (let i = 0; i < names.length; i++) {
+        if (names[i].trim() === 'none') continue;
+        const total = parseTime(durs[i] || durs[0]) + parseTime(dels[i] || dels[0]);
+        if (total > max) max = total;
+      }
+    });
+    return max;
+  }
+
+  const cycleCache = new WeakMap();
+  function cycleFor(demo) {
+    if (cycleCache.has(demo)) return cycleCache.get(demo);
+    const hadPlaying = demo.classList.contains('playing');
+    if (!hadPlaying) demo.classList.add('playing');
+    void demo.offsetWidth;
+    const ms = Math.max(900, maxAnimationMs(demo) + 400);
+    if (!hadPlaying) demo.classList.remove('playing');
+    cycleCache.set(demo, ms);
+    return ms;
+  }
+
+  const hoverLoops = new WeakMap();
+  function startHoverLoop(demo) {
+    stopHoverLoop(demo);
+    retrigger(demo);
+    const cycle = cycleFor(demo);
+    const id = setInterval(() => retrigger(demo), cycle);
+    hoverLoops.set(demo, id);
+  }
+  function stopHoverLoop(demo) {
+    const id = hoverLoops.get(demo);
+    if (id) { clearInterval(id); hoverLoops.delete(demo); }
+  }
+
+  document.querySelectorAll('.demo').forEach(demo => {
+    demo.addEventListener('mouseenter', () => {
+      if (document.fullscreenElement) return;
+      startHoverLoop(demo);
+    });
+    demo.addEventListener('mouseleave', () => stopHoverLoop(demo));
+
+    demo.addEventListener('click', () => {
+      if (document.fullscreenElement === demo) {
+        retrigger(demo);
+        return;
+      }
+      stopHoverLoop(demo);
+      if (document.fullscreenElement) document.exitFullscreen();
+      const after = () => retrigger(demo);
+      const p = demo.requestFullscreen();
+      if (p && p.then) p.then(after).catch(after); else after();
+    });
+  });
+
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) {
+      document.querySelectorAll('.demo:hover').forEach(startHoverLoop);
+    }
+  });
+
+  window.addEventListener('load', () => {
+    document.querySelectorAll('.demo').forEach((demo, i) => {
+      setTimeout(() => retrigger(demo), 500 + i * 160);
+    });
+  });
+</script>
+</body>
+</html>

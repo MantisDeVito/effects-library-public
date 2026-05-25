@@ -1,0 +1,1824 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Captions · Callum's Effects Library</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --card: #141414;
+    --border: #262626;
+    --border-hover: #3a3a3a;
+    --text: #ececec;
+    --muted: #888;
+    --accent: #ff7a1a;
+    --accent-2: #ff3b30;
+    --good: #4ade80;
+    --bad: #ef4444;
+    --display: 'Impact', 'Haettenschweiler', 'Arial Narrow Bold', sans-serif;
+    --mono: 'SF Mono', Menlo, Consolas, monospace;
+    --caption: 'Anton', 'Impact', 'Haettenschweiler', 'Arial Narrow Bold', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: 32px 40px 80px; max-width: 1480px; margin: 0 auto;
+  }
+
+  .topnav {
+    display: flex; align-items: flex-end; gap: 24px;
+    padding-bottom: 20px; border-bottom: 1px solid var(--border);
+    margin-bottom: 28px; flex-wrap: wrap;
+  }
+  .topnav .brand {
+    font-family: var(--display); font-size: 18px;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text); text-decoration: none; white-space: nowrap;
+    display: inline-block; line-height: 1.1;
+  }
+  .topnav .brand .brand-top {
+    display: block; font-size: 12px; letter-spacing: 1.5px;
+    color: var(--accent); margin-bottom: 2px;
+  }
+  .topnav .brand:hover { color: var(--accent); }
+  .topnav nav { display: flex; gap: 24px; font-size: 13px; letter-spacing: 0.3px; text-transform: uppercase; flex-wrap: wrap; }
+  .topnav nav a { color: var(--muted); text-decoration: none; transition: color 120ms; }
+  .topnav nav a:hover { color: var(--text); }
+  .topnav nav a.current { color: var(--accent); }
+  .topnav nav .group { position: relative; padding-bottom: 12px; margin-bottom: -12px; }
+  .topnav nav .group .group-head {
+    color: var(--muted); cursor: default; text-transform: uppercase;
+    letter-spacing: 0.3px; transition: color 120ms;
+  }
+  .topnav nav .group a.group-head { cursor: pointer; }
+  .topnav nav .group:hover .group-head,
+  .topnav nav .group:focus-within .group-head { color: var(--text); }
+  .topnav nav .group.current .group-head { color: var(--accent); }
+  .topnav nav .group .dropdown {
+    position: absolute; top: 100%; left: -8px;
+    display: none; min-width: 200px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 4px;
+    padding: 8px 0; z-index: 50;
+    flex-direction: column; gap: 0;
+  }
+  .topnav nav .group:hover .dropdown,
+  .topnav nav .group:focus-within .dropdown { display: flex; }
+  .topnav nav .group .dropdown a {
+    padding: 6px 16px; font-size: 12px; color: var(--muted);
+    text-transform: none; letter-spacing: 0.2px; white-space: nowrap;
+  }
+  .topnav nav .group .dropdown a:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .topnav nav .group .dropdown a.current { color: var(--accent); }
+
+  header.page-header { padding-bottom: 24px; margin-bottom: 32px; }
+  header.page-header h1 {
+    font-family: var(--display); font-size: 44px;
+    margin: 0 0 8px; letter-spacing: -0.5px; text-transform: uppercase;
+  }
+  header.page-header p { margin: 0; color: var(--muted); max-width: 820px; }
+
+  section { margin-bottom: 56px; }
+
+  .demo {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 6px; padding: 22px;
+  }
+  .demo h3 { margin: 0 0 4px; font-size: 16px; font-weight: 600; letter-spacing: 0.3px; }
+  .demo p.caption {
+    margin: 0 0 22px; color: var(--muted); font-size: 13px;
+    font-family: var(--mono); line-height: 1.5;
+  }
+
+  .tool {
+    display: grid;
+    grid-template-columns: minmax(360px, 1fr) minmax(420px, 1.4fr);
+    gap: 28px; align-items: start;
+  }
+  @media (max-width: 1080px) {
+    .tool { grid-template-columns: 1fr; }
+  }
+
+  .preview-col { position: sticky; top: 20px; }
+  .stage-wrap {
+    width: 100%; max-width: 420px;
+    aspect-ratio: 9 / 16;
+    background: #000; border-radius: 4px;
+    position: relative; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .stage-wrap canvas {
+    width: 100%; height: 100%; display: block;
+  }
+  .preview-meta {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    margin-top: 8px;
+  }
+  .transport {
+    margin-top: 14px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .transport button {
+    background: #1a1a1a; border: 1px solid var(--border); color: var(--text);
+    padding: 7px 14px; border-radius: 4px; cursor: pointer;
+    font-size: 12px; letter-spacing: 0.3px; text-transform: uppercase;
+    font-family: inherit;
+    transition: border-color 120ms, background 120ms;
+  }
+  .transport button:hover { border-color: var(--border-hover); background: #222; }
+  .transport input[type=range] { flex: 1; min-width: 120px; }
+  .transport .time-readout {
+    font-family: var(--mono); font-size: 11px; color: var(--muted); min-width: 70px; text-align: right;
+  }
+  .download-btn {
+    margin-top: 14px; width: 100%;
+    background: var(--accent); color: #000;
+    border: none; padding: 12px 16px; border-radius: 4px; cursor: pointer;
+    font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase; font-weight: 700;
+    font-family: inherit;
+    transition: filter 120ms;
+  }
+  .download-btn:hover { filter: brightness(1.1); }
+  .download-btn:disabled { background: #333; color: #777; cursor: not-allowed; }
+  .render-progress {
+    margin-top: 10px; font-family: var(--mono); font-size: 11px; color: var(--accent);
+  }
+  .render-progress .bar {
+    margin-top: 6px; height: 4px; background: #222; border-radius: 2px; overflow: hidden;
+  }
+  .render-progress .bar > div {
+    height: 100%; background: var(--accent); width: 0%; transition: width 120ms;
+  }
+
+  .controls-col {
+    display: flex; flex-direction: column; gap: 18px;
+    max-height: calc(100vh - 80px); overflow-y: auto;
+    padding-right: 4px;
+  }
+  .controls-col::-webkit-scrollbar { width: 8px; }
+  .controls-col::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 4px; }
+
+  .ctl-section {
+    background: #101010; border: 1px solid var(--border); border-radius: 5px;
+    padding: 14px 16px;
+  }
+  .ctl-section h4 {
+    margin: 0 0 12px; font-family: var(--display); font-size: 13px;
+    letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent);
+  }
+  .ctl-section .row {
+    display: grid; grid-template-columns: 130px 1fr 60px;
+    gap: 10px; align-items: center; margin-bottom: 10px;
+  }
+  .ctl-section .row:last-child { margin-bottom: 0; }
+  .ctl-section .row label {
+    font-size: 12px; color: var(--muted);
+  }
+  .ctl-section .row .val {
+    font-family: var(--mono); font-size: 11px; color: var(--text); text-align: right;
+  }
+  .ctl-section .full {
+    display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;
+  }
+  .ctl-section .full:last-child { margin-bottom: 0; }
+  .ctl-section .full label { font-size: 12px; color: var(--muted); }
+  .ctl-section textarea {
+    width: 100%; background: #050505; border: 1px solid var(--border); color: var(--text);
+    padding: 10px; border-radius: 4px; font-family: var(--mono); font-size: 12px;
+    line-height: 1.5; resize: vertical; min-height: 80px;
+  }
+  .ctl-section input[type=text],
+  .ctl-section input[type=password] {
+    width: 100%; background: #050505; border: 1px solid var(--border); color: var(--text);
+    padding: 8px 10px; border-radius: 4px; font-family: var(--mono); font-size: 12px;
+  }
+  .ctl-section input[type=color] {
+    width: 36px; height: 24px; padding: 0; border: 1px solid var(--border);
+    background: transparent; border-radius: 3px; cursor: pointer;
+  }
+  .ctl-section .preset-row {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px;
+  }
+  .ctl-section .preset-row button {
+    background: #1a1a1a; border: 1px solid var(--border); color: var(--muted);
+    padding: 5px 9px; border-radius: 3px; cursor: pointer; font-size: 11px;
+    font-family: inherit; letter-spacing: 0.2px;
+    transition: color 120ms, border-color 120ms;
+  }
+  .ctl-section .preset-row button:hover { color: var(--text); border-color: var(--border-hover); }
+
+  .ctl-section .radio-row {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .ctl-section .radio-row label {
+    flex: 1; min-width: 100px;
+    background: #1a1a1a; border: 1px solid var(--border);
+    padding: 7px 10px; border-radius: 4px; cursor: pointer;
+    font-size: 12px; color: var(--muted); text-align: center;
+    transition: color 120ms, border-color 120ms, background 120ms;
+  }
+  .ctl-section .radio-row label:hover { color: var(--text); border-color: var(--border-hover); }
+  .ctl-section .radio-row input[type=radio] { display: none; }
+  .ctl-section .radio-row label:has(input:checked) {
+    border-color: var(--accent); background: rgba(255,122,26,0.07); color: var(--accent);
+  }
+
+  .ctl-section input[type=range] { width: 100%; }
+  .ctl-section input[type=range] {
+    -webkit-appearance: none; appearance: none;
+    background: transparent; height: 18px;
+  }
+  .ctl-section input[type=range]::-webkit-slider-runnable-track {
+    height: 3px; background: #2a2a2a; border-radius: 2px;
+  }
+  .ctl-section input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); margin-top: -6px; cursor: pointer;
+    border: 2px solid #0a0a0a;
+  }
+  .ctl-section input[type=range]::-moz-range-track {
+    height: 3px; background: #2a2a2a; border-radius: 2px;
+  }
+  .ctl-section input[type=range]::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); cursor: pointer; border: 2px solid #0a0a0a;
+  }
+  .ctl-section select {
+    background: #050505; border: 1px solid var(--border); color: var(--text);
+    padding: 6px 8px; border-radius: 4px; font-family: inherit; font-size: 12px;
+  }
+  .ctl-section .checkbox-row {
+    display: flex; align-items: center; gap: 8px; margin-top: 6px;
+  }
+  .ctl-section .checkbox-row label { font-size: 12px; color: var(--muted); }
+  .ctl-section .help {
+    font-size: 11px; color: #666; font-family: var(--mono); margin-top: 4px;
+  }
+  .ctl-section .key-status { font-family: var(--mono); font-size: 11px; }
+  .ctl-section .key-status.ok { color: var(--good); }
+  .ctl-section .key-status.missing { color: var(--bad); }
+  .ctl-section[data-show="false"] { display: none; }
+
+  .stage-wrap::after {
+    content: ''; position: absolute; inset: 0;
+    pointer-events: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="topnav">
+  <a href="index.html" class="brand"><span class="brand-top">Callum's</span>Effects Library</a>
+  <nav>
+    <div class="group" data-group="search">
+      <a href="search.html" class="group-head">Search</a>
+    </div>
+
+    <div class="group" data-group="icons">
+      <a href="icons.html" class="group-head">Icons</a>
+    </div>
+
+    <div class="group current" data-group="text">
+      <a href="text.html" class="group-head">Text</a>
+      <div class="dropdown">
+        <a href="text.html" data-page="text">Text</a>
+        <a href="lower-thirds.html" data-page="lower-thirds">Lower thirds</a>
+        <a href="captions.html" class="current" data-page="captions">Captions</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="music">
+      <a href="music.html" class="group-head">Music</a>
+    </div>
+
+    <div class="group" data-group="motion">
+      <span class="group-head">Motion</span>
+      <div class="dropdown">
+        <a href="entrances.html" data-page="entrances">Entrances &amp; exits</a>
+        <a href="mograph.html" data-page="mograph">Mograph</a>
+        <a href="beats.html" data-page="beats">Beats</a>
+        <a href="shapes.html" data-page="shapes">Shapes</a>
+        <a href="logos.html" data-page="logos">Logos</a>
+        <a href="ease-curves.html" data-page="ease-curves">Ease curves</a>
+        <a href="speedometer.html" data-page="speedometer">Speedometer</a>
+        <a href="scribbles.html" data-page="scribbles">Scribbles</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="visual">
+      <span class="group-head">Visual</span>
+      <div class="dropdown">
+        <a href="colours.html" data-page="colours">Colours</a>
+        <a href="atmosphere.html" data-page="atmosphere">Atmosphere</a>
+        <a href="overlays.html" data-page="overlays">Overlays</a>
+        <a href="glitch.html" data-page="glitch">Glitch</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="cinematography">
+      <span class="group-head">Cinematography</span>
+      <div class="dropdown">
+        <a href="camera-moves.html" data-page="camera-moves">Camera moves</a>
+        <a href="transitions.html" data-page="transitions">Transitions</a>
+        <a href="lens.html" data-page="lens">Lens</a>
+      </div>
+    </div>
+
+    <div class="group" data-group="tools">
+      <span class="group-head">Tools &amp; assets</span>
+      <div class="dropdown">
+        <a href="common-sfx.html" data-page="common-sfx">Common SFX</a>
+        <a href="sound-fx.html" data-page="sound-fx">Sound FX (AI)</a>
+        <a href="ai-toolchain.html" data-page="ai-toolchain">AI toolchain</a>
+        <a href="templates.html" data-page="templates">Templates</a>
+        <a href="shared-library/browser.html" data-page="browser">Shared library</a>
+        <a href="shared-library/Mograph/preview.html" data-page="mograph-preview">Mograph preview</a>
+        <a href="shared-library/Greenscreen/index.html" data-page="greenscreen">Greenscreen templates</a>
+        <a href="file:///D:/AIIMS/LIGHT%20LEAKS/index.html" data-page="light-leaks-d">Light leaks (D:)</a>
+      </div>
+    </div>
+  </nav>
+</div>
+
+<header class="page-header">
+  <h1>Captions</h1>
+  <p>Paste a script, get TikTok-style cards with one big hero word per phrase and the supporting words nesting into the gaps around it. Tune the look, scrub the timeline, export an MP4 you can drop straight into Premiere. Mark a hero word explicitly by wrapping it in *asterisks*.</p>
+</header>
+
+<section>
+  <div class="demo" id="captions-tool">
+    <h3>Captions tool</h3>
+    <p class="caption">Animated TikTok-style captions — paste a script, get cards with a hero word centred and supporting words tucked into the negative space around it. Three reveal modes, three hero-pick modes (asterisks / auto / Claude), MP4 export at 1080×1920 30fps via WebCodecs.</p>
+
+    <div class="tool">
+
+      <div class="preview-col">
+        <div class="stage-wrap">
+          <canvas id="stage" width="1080" height="1920"></canvas>
+        </div>
+        <div class="preview-meta" id="preview-meta">1080 × 1920 · 30 fps</div>
+        <div class="transport">
+          <button id="play-btn">Play</button>
+          <button id="restart-btn">Restart</button>
+          <input type="range" id="scrubber" min="0" max="1000" value="0" step="1">
+          <span class="time-readout" id="time-readout">0.0s / 0.0s</span>
+        </div>
+        <button class="download-btn" id="download-btn">Download MP4</button>
+        <div class="render-progress" id="render-progress" hidden>
+          <span id="render-progress-text">Rendering…</span>
+          <div class="bar"><div id="render-progress-bar"></div></div>
+        </div>
+      </div>
+
+      <div class="controls-col">
+
+        <div class="ctl-section">
+          <h4>Script</h4>
+          <div class="full">
+            <textarea id="script-input" rows="5" spellcheck="false">Last Tuesday morning all the pigs took flight. Within an hour the whole *world* watched in pure disbelief. Pink shapes floated past every *window* in every town. Old farmers cried and laughed at *once*. By sunset the pigs landed *softly* on rooftops everywhere. Nothing has truly felt the same *since* that day.</textarea>
+            <div class="help">Wrap any word in *asterisks* to lock it as the hero of its card.</div>
+          </div>
+          <div class="preset-row">
+            <button data-preset="hormozi">Hormozi-style</button>
+            <button data-preset="hook">Hook-style</button>
+            <button data-preset="rant">Quick rant</button>
+            <button data-preset="value">Value bomb</button>
+          </div>
+        </div>
+
+        <div class="ctl-section">
+          <h4>Hero pick mode</h4>
+          <div class="radio-row" id="hero-mode-row">
+            <label><input type="radio" name="hero-mode" value="asterisk-auto" checked><span>Asterisk + auto</span></label>
+            <label><input type="radio" name="hero-mode" value="auto"><span>Auto only</span></label>
+            <label><input type="radio" name="hero-mode" value="claude"><span>Claude</span></label>
+          </div>
+        </div>
+
+        <div class="ctl-section" id="claude-section" data-show="false">
+          <h4>Anthropic API key</h4>
+          <div class="full">
+            <input type="password" id="anthropic-key" placeholder="sk-ant-…" autocomplete="off">
+            <div class="help">Stored in localStorage on this machine only. Posted directly to api.anthropic.com.</div>
+            <div class="key-status missing" id="key-status">no key saved</div>
+          </div>
+        </div>
+
+        <div class="ctl-section">
+          <h4>Pacing</h4>
+          <div class="row">
+            <label>Card duration</label>
+            <input type="range" id="card-dur" min="0.8" max="4.0" step="0.05" value="1.8">
+            <span class="val" id="card-dur-val">1.80s</span>
+          </div>
+          <div class="row">
+            <label>Word stagger</label>
+            <input type="range" id="word-stagger" min="0" max="300" step="5" value="90">
+            <span class="val" id="word-stagger-val">90ms</span>
+          </div>
+          <div class="row">
+            <label>Card transition</label>
+            <input type="range" id="card-fade" min="0" max="200" step="10" value="0">
+            <span class="val" id="card-fade-val">cut</span>
+          </div>
+        </div>
+
+        <div class="ctl-section">
+          <h4>Reveal style</h4>
+          <div class="radio-row" id="reveal-mode-row">
+            <label><input type="radio" name="reveal-mode" value="snap" checked><span>Snap</span></label>
+            <label><input type="radio" name="reveal-mode" value="pop"><span>Pop (bounce)</span></label>
+            <label><input type="radio" name="reveal-mode" value="fade"><span>Fade-scale</span></label>
+          </div>
+        </div>
+
+        <div class="ctl-section">
+          <h4>Layout</h4>
+          <div class="row">
+            <label>Pattern</label>
+            <select id="slot-pattern">
+              <option value="nested" selected>Nested (Hormozi-style — supports tuck into hero)</option>
+              <option value="stacked">Stacked (Submagic-style — pill per line)</option>
+              <option value="compact">Compact (vertical hero)</option>
+              <option value="diagonal">Diagonal nest</option>
+              <option value="spread">Spread</option>
+            </select>
+            <span class="val"></span>
+          </div>
+          <div class="row">
+            <label>Position Y</label>
+            <input type="range" id="hero-y" min="0.30" max="0.90" step="0.01" value="0.68">
+            <span class="val" id="hero-y-val">0.68</span>
+          </div>
+          <div class="row">
+            <label>Max words/card</label>
+            <input type="range" id="max-words" min="2" max="7" step="1" value="4">
+            <span class="val" id="max-words-val">4</span>
+          </div>
+          <div class="row">
+            <label>Support margin</label>
+            <input type="range" id="support-margin" min="0" max="120" step="2" value="30">
+            <span class="val" id="support-margin-val">30px</span>
+          </div>
+        </div>
+
+        <div class="ctl-section">
+          <h4>Type</h4>
+          <div class="row">
+            <label>Font</label>
+            <select id="font-family">
+              <option value="inter" selected>Inter (variable weight)</option>
+              <option value="anton">Anton (display condensed)</option>
+            </select>
+            <span class="val"></span>
+          </div>
+          <div class="row">
+            <label>Font weight</label>
+            <input type="range" id="font-weight" min="500" max="900" step="100" value="700">
+            <span class="val" id="font-weight-val">700</span>
+          </div>
+          <div class="row">
+            <label>Text size</label>
+            <input type="range" id="support-scale" min="50" max="220" step="5" value="90">
+            <span class="val" id="support-scale-val">90</span>
+          </div>
+          <div class="row">
+            <label>Hero bump</label>
+            <input type="range" id="hero-bump" min="1.0" max="6.0" step="0.05" value="3.0">
+            <span class="val" id="hero-bump-val">3.00×</span>
+          </div>
+          <div class="row">
+            <label>Hero scale (slot)</label>
+            <input type="range" id="hero-scale" min="150" max="700" step="10" value="420">
+            <span class="val" id="hero-scale-val">420</span>
+          </div>
+          <div class="row">
+            <label>Stroke width</label>
+            <input type="range" id="stroke-w" min="0" max="20" step="1" value="10">
+            <span class="val" id="stroke-w-val">10</span>
+          </div>
+          <div class="row">
+            <label>Hero fill</label>
+            <input type="color" id="hero-color" value="#FFFFFF">
+            <span class="val"></span>
+          </div>
+          <div class="row">
+            <label>Support fill</label>
+            <input type="color" id="support-color" value="#FFFFFF">
+            <span class="val"></span>
+          </div>
+          <div class="checkbox-row">
+            <input type="checkbox" id="all-caps">
+            <label for="all-caps">Force ALL CAPS (off = sentence case as typed)</label>
+          </div>
+        </div>
+
+        <div class="ctl-section">
+          <h4>Pill background</h4>
+          <div class="checkbox-row">
+            <input type="checkbox" id="pill-enabled">
+            <label for="pill-enabled">Show pill behind the line(s)</label>
+          </div>
+          <div class="row">
+            <label>Pill opacity</label>
+            <input type="range" id="pill-opacity" min="0" max="1" step="0.05" value="0.75">
+            <span class="val" id="pill-opacity-val">0.75</span>
+          </div>
+          <div class="row">
+            <label>Padding X</label>
+            <input type="range" id="pill-pad-x" min="0" max="80" step="2" value="28">
+            <span class="val" id="pill-pad-x-val">28px</span>
+          </div>
+          <div class="row">
+            <label>Padding Y</label>
+            <input type="range" id="pill-pad-y" min="0" max="40" step="1" value="14">
+            <span class="val" id="pill-pad-y-val">14px</span>
+          </div>
+          <div class="row">
+            <label>Corner radius</label>
+            <input type="range" id="pill-radius" min="0" max="40" step="1" value="14">
+            <span class="val" id="pill-radius-val">14px</span>
+          </div>
+        </div>
+
+        <div class="ctl-section">
+          <h4>Export</h4>
+          <div class="row">
+            <label>Aspect</label>
+            <select id="aspect">
+              <option value="1080x1920" selected>1080 × 1920 (9:16)</option>
+              <option value="1920x1080">1920 × 1080 (16:9)</option>
+              <option value="1080x1080">1080 × 1080 (1:1)</option>
+            </select>
+            <span class="val"></span>
+          </div>
+          <div class="row">
+            <label>Frame rate</label>
+            <select id="fps">
+              <option value="24">24 fps</option>
+              <option value="30" selected>30 fps</option>
+              <option value="60">60 fps</option>
+            </select>
+            <span class="val"></span>
+          </div>
+          <div class="row">
+            <label>Background</label>
+            <select id="bg">
+              <option value="checker" selected>Checker (preview only — shows pill)</option>
+              <option value="black">Solid black</option>
+              <option value="white">Solid white</option>
+            </select>
+            <span class="val"></span>
+          </div>
+          <div class="help">MP4 always exports with the selected solid background — checker is preview-only so you can see the type clearly.</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<script type="module">
+'use strict';
+
+const DEFAULT_SCRIPT = "Last Tuesday morning all the pigs took flight. Within an hour the whole *world* watched in pure disbelief. Pink shapes floated past every *window* in every town. Old farmers cried and laughed at *once*. By sunset the pigs landed *softly* on rooftops everywhere. Nothing has truly felt the same *since* that day.";
+
+const PRESETS = {
+  hormozi: "If you do *anything* in life make sure you do it for the right reasons.",
+  hook: "I lost forty thousand dollars in one *week*. Here's how I got it back.",
+  rant: "Stop *waiting*. Start now. Nothing is going to fall in your lap.",
+  value: "The *only* skill that matters is learning how to sell.",
+};
+
+const cfg = {
+  script: DEFAULT_SCRIPT,
+  heroMode: 'asterisk-auto',
+  fontFamily: 'inter',          // 'inter' | 'anton'
+  fontWeight: 700,              // Inter weight: 500/600/700/800/900 — lower = more text fits
+  cardDur: 1.8,
+  wordStagger: 90,
+  cardFade: 0,
+  reveal: 'snap',
+  slotPattern: 'nested',        // 'nested' (default Hormozi-style) | 'stacked' | 'diagonal' | 'compact' | 'spread'
+  heroY: 0.68,                  // low-centre by default (matches Submagic/Captions.ai)
+  maxWords: 4,
+  supportMargin: 30,
+  supportScale: 90,             // used as base size in stacked mode
+  heroBump: 3.0,                // hero is this × supportScale (Hormozi-style nest needs a big hero)
+  heroScale: 420,               // used in legacy slot patterns (diagonal/compact/spread)
+  strokeW: 10,                  // thick stroke replaces pill for nested mode legibility
+  heroColor: '#FFFFFF',
+  supportColor: '#FFFFFF',
+  allCaps: false,
+  pillEnabled: false,           // off in nested mode (stroke does the work); turn on for stacked/Submagic
+  pillOpacity: 0.75,
+  pillPadX: 28,
+  pillPadY: 14,
+  pillRadius: 14,
+  aspect: '1080x1920',
+  fps: 30,
+  bg: 'checker',  // checker bg in preview so the dark pill is visible; export forces black/white.
+};
+
+// Auto-pick is opinionated: only promote a hero if there's a clearly weighted word
+// (digit/number/%, or an outlier-long word). Otherwise the whole card flows at support size.
+const HERO_PROMOTE_LEN_RATIO = 1.6;   // longest word must be ≥ this × avg length
+const HERO_PROMOTE_MIN_LEN = 5;
+
+const state = {
+  cards: [],
+  totalDur: 0,
+  playing: false,
+  t: 0,
+  rafId: null,
+  lastNow: 0,
+  exporting: false,
+  fontReady: false,
+};
+
+const $ = (id) => document.getElementById(id);
+const stage = $('stage');
+const ctx = stage.getContext('2d');
+
+function applyAspect() {
+  const [w, h] = cfg.aspect.split('x').map(Number);
+  stage.width = w;
+  stage.height = h;
+  const wrap = stage.parentElement;
+  wrap.style.aspectRatio = `${w} / ${h}`;
+  $('preview-meta').textContent = `${w} × ${h} · ${cfg.fps} fps`;
+}
+
+function parseScript(raw) {
+  const tokens = [];
+  const re = /(\*?[A-Za-z0-9']+\*?)([.,;:!?]?)/g;
+  for (const m of raw.matchAll(re)) {
+    let word = m[1];
+    let isHero = false;
+    if (word.startsWith('*') && word.endsWith('*') && word.length > 2) {
+      word = word.slice(1, -1); isHero = true;
+    } else if (word.startsWith('*')) {
+      word = word.slice(1); isHero = true;
+    } else if (word.endsWith('*')) {
+      word = word.slice(0, -1); isHero = true;
+    }
+    tokens.push({ text: word, isHero, breakAfter: !!m[2] });
+  }
+  return tokens;
+}
+
+function chunkIntoCards(tokens, maxWords) {
+  const cards = [];
+  let cur = [];
+  for (const tok of tokens) {
+    cur.push(tok);
+    const hitMax = cur.length >= maxWords;
+    // Punctuation always breaks — even on a single word (matches reference: solo "lately,", "bank,")
+    const hitBreak = tok.breakAfter;
+    if (hitMax || hitBreak) {
+      cards.push(cur);
+      cur = [];
+    }
+  }
+  if (cur.length) cards.push(cur);
+  return cards;
+}
+
+function pickHeroIndex(card, mode, claudeChoice) {
+  // 1. Asterisk override (any mode except pure auto)
+  if (mode !== 'auto') {
+    const idx = card.findIndex(t => t.isHero);
+    if (idx >= 0) return idx;
+  }
+  // 2. Claude choice
+  if (mode === 'claude' && typeof claudeChoice === 'number' && claudeChoice >= 0) {
+    return Math.min(claudeChoice, card.length - 1);
+  }
+  // 3. Single-word card → that word is always the hero (matches reference "lately,", "us", "$20,000")
+  if (card.length === 1) return 0;
+  // 4. Any digit/number/% word → that word is hero
+  const digitIdx = card.findIndex(t => /\d/.test(t.text));
+  if (digitIdx >= 0) return digitIdx;
+  // 5. Last word IF it sits at a clause/sentence boundary (trailing punctuation) AND has weight.
+  //    This is the actual rule used by the reference video.
+  const last = card[card.length - 1];
+  if (last.breakAfter && last.text.length >= 3) return card.length - 1;
+  // 6. Otherwise no hero — card flows as uniform-size text.
+  return -1;
+}
+
+function fontStack(family) {
+  if (family === 'anton') return `Anton, Impact, "Haettenschweiler", "Arial Narrow Bold", sans-serif`;
+  return `Inter, "Helvetica Neue", Helvetica, Arial, sans-serif`;
+}
+function fontWeightFor(family) {
+  if (family === 'inter') return cfg.fontWeight;
+  return 400;
+}
+function setFont(ctx, scale, family = cfg.fontFamily) {
+  ctx.font = `${fontWeightFor(family)} ${scale}px ${fontStack(family)}`;
+}
+
+function measureWord(ctx, text) {
+  const m = ctx.measureText(text);
+  const w = m.width;
+  const ascent = m.actualBoundingBoxAscent ?? (parseFloat(ctx.font) * 0.8);
+  const descent = m.actualBoundingBoxDescent ?? (parseFloat(ctx.font) * 0.2);
+  return { w, h: ascent + descent, ascent, descent };
+}
+
+function buildSlots(pattern, count, hero, W, H, margin) {
+  const cx = W / 2;
+  const heroTop = hero.cy - hero.ascent;
+  const heroBot = hero.cy + hero.descent;
+  const heroL = hero.cx - hero.w / 2;
+  const heroR = hero.cx + hero.w / 2;
+  const ABOVE = Math.max(80, heroTop - margin);
+  const BELOW = Math.min(H - 80, heroBot + margin);
+  const FAR_L = Math.max(60, heroL - margin);
+  const FAR_R = Math.min(W - 60, heroR + margin);
+
+  const slot = (x, y, align, baseline) => ({ x, y, align, baseline });
+
+  if (pattern === 'compact') {
+    if (count === 1) return [slot(cx, ABOVE, 'center', 'alphabetic')];
+    if (count === 2) return [slot(cx, ABOVE, 'center', 'alphabetic'), slot(cx, BELOW, 'center', 'hanging')];
+    if (count === 3) return [
+      slot(cx, ABOVE, 'center', 'alphabetic'),
+      slot(FAR_L, BELOW, 'left', 'hanging'),
+      slot(FAR_R, BELOW, 'right', 'hanging'),
+    ];
+    return [
+      slot(FAR_L, ABOVE, 'left', 'alphabetic'),
+      slot(FAR_R, ABOVE, 'right', 'alphabetic'),
+      slot(FAR_L, BELOW, 'left', 'hanging'),
+      slot(FAR_R, BELOW, 'right', 'hanging'),
+    ];
+  }
+
+  if (pattern === 'diagonal') {
+    if (count === 1) return [slot(FAR_L, ABOVE, 'left', 'alphabetic')];
+    if (count === 2) return [
+      slot(FAR_L, ABOVE, 'left', 'alphabetic'),
+      slot(FAR_R, BELOW, 'right', 'hanging'),
+    ];
+    if (count === 3) return [
+      slot(FAR_L, ABOVE, 'left', 'alphabetic'),
+      slot(FAR_R, ABOVE, 'right', 'alphabetic'),
+      slot(cx, BELOW, 'center', 'hanging'),
+    ];
+    return [
+      slot(FAR_L, ABOVE, 'left', 'alphabetic'),
+      slot(FAR_R, ABOVE, 'right', 'alphabetic'),
+      slot(FAR_L, BELOW, 'left', 'hanging'),
+      slot(FAR_R, BELOW, 'right', 'hanging'),
+    ];
+  }
+
+  const wide = Math.max(60, heroL - 2 * margin);
+  const wider = Math.min(W - 60, heroR + 2 * margin);
+  if (count === 1) return [slot(cx, BELOW, 'center', 'hanging')];
+  if (count === 2) return [
+    slot(wide, hero.cy, 'right', 'middle'),
+    slot(wider, hero.cy, 'left', 'middle'),
+  ];
+  if (count === 3) return [
+    slot(cx, ABOVE, 'center', 'alphabetic'),
+    slot(wide, hero.cy, 'right', 'middle'),
+    slot(wider, hero.cy, 'left', 'middle'),
+  ];
+  return [
+    slot(cx, ABOVE, 'center', 'alphabetic'),
+    slot(wide, hero.cy, 'right', 'middle'),
+    slot(wider, hero.cy, 'left', 'middle'),
+    slot(cx, BELOW, 'center', 'hanging'),
+  ];
+}
+
+function transformWordText(text) {
+  return cfg.allCaps ? text.toUpperCase() : text;
+}
+
+// =========================================================================
+// NESTED LAYOUT — Hormozi-style: supports tuck into the hero's letterform cavity.
+// Hero centred at heroY; supports overlap the hero, baseline at hero's x-height
+// (top of short letters like 'a', 's'). For "fast", supports sit above 'as' and
+// the tall 'f' / 't' ascenders poke up beside the supports.
+// =========================================================================
+
+// Inter Black approximate metrics as fractions of fontPx
+const INTER_X_HEIGHT_RATIO = 0.52;
+const INTER_CAP_RATIO = 0.78;
+
+// Lowercase letters whose glyphs reach cap height (ascenders).
+// Uppercase, digits, and currency are all treated as cap-height too.
+const ASCENDER_CHARS = new Set([
+  ...'bdfhklt',
+  ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+  ...'0123456789$£€¥%',
+]);
+function isAscenderChar(ch) {
+  return ASCENDER_CHARS.has(ch);
+}
+
+/**
+ * Find the widest "cap-zone cavity" in the hero word: a contiguous run of
+ * non-ascender (x-height only) letters bordered by ascender letters on both
+ * sides. For "fast", returns the gap above 'as' between 'f' and 't'.
+ *
+ * Returns { x0, x1, midX } in text-local coords (0 = left edge of hero text),
+ * or null if no qualifying cavity exists.
+ */
+function findHeroCavity(heroText, heroFontPx) {
+  setFont(ctx, heroFontPx);
+  const letters = [...heroText];
+  // Compute each letter's [x0, x1] in text-local coords.
+  let cx = 0;
+  const pos = letters.map((ch) => {
+    const w = ctx.measureText(ch).width;
+    const out = { ch, x0: cx, x1: cx + w, isAsc: isAscenderChar(ch) };
+    cx += w;
+    return out;
+  });
+
+  let best = null;
+  for (let i = 0; i < pos.length; i++) {
+    if (pos[i].isAsc) continue;
+    let j = i;
+    while (j < pos.length && !pos[j].isAsc) j++;
+    const leftBorder = i > 0 && pos[i - 1].isAsc;
+    const rightBorder = j < pos.length && pos[j].isAsc;
+    if (leftBorder && rightBorder) {
+      const x0 = pos[i - 1].x1;
+      const x1 = pos[j].x0;
+      const w = x1 - x0;
+      if (!best || w > best.x1 - best.x0) best = { x0, x1, midX: (x0 + x1) / 2 };
+    }
+    i = j;
+  }
+  return best;
+}
+
+function layoutNested(chunk, heroIdx, W, H) {
+  if (heroIdx < 0) {
+    // No hero → degrade to stacked (flowing one-line text in a pill)
+    return layoutStacked(chunk, heroIdx, W, H);
+  }
+
+  const supports = chunk.filter((_, i) => i !== heroIdx);
+
+  // Measure hero
+  let heroScale = cfg.supportScale * cfg.heroBump;
+  setFont(ctx, heroScale);
+  const heroText = transformWordText(chunk[heroIdx].text);
+  let heroMeas = measureWord(ctx, heroText);
+  const maxHeroW = W * 0.90;
+  if (heroMeas.w > maxHeroW) {
+    heroScale = heroScale * (maxHeroW / heroMeas.w);
+    setFont(ctx, heroScale);
+    heroMeas = measureWord(ctx, heroText);
+  }
+
+  const heroCx = W / 2;
+  const heroBaselineY = H * cfg.heroY + heroMeas.ascent * 0.25;  // tucks card slightly above heroY
+
+  const heroLayout = {
+    text: heroText, role: 'hero',
+    x: heroCx, y: heroBaselineY, align: 'center', baseline: 'alphabetic',
+    fontPx: heroScale, fontFamily: cfg.fontFamily, color: cfg.heroColor,
+    indexInCard: heroIdx, lineIdx: 1,
+  };
+
+  // No supports → solo hero, no overlay
+  if (supports.length === 0) {
+    heroLayout.delay = 0;
+    const lineBoxes = [{
+      x0: heroCx - heroMeas.w / 2, x1: heroCx + heroMeas.w / 2,
+      y0: heroBaselineY - heroMeas.ascent, y1: heroBaselineY + heroMeas.descent,
+      cy: heroBaselineY,
+      h: heroMeas.h,
+    }];
+    return { words: [heroLayout], lineBoxes };
+  }
+
+  // Find the cavity inside the hero (gap between bracketing ascender letters).
+  // Only use it if it's wide enough to give readable supports — otherwise the
+  // supports would get crammed into something like the tiny 'o' of "dollars".
+  const rawCavity = findHeroCavity(heroText, heroScale);
+  const cavity = rawCavity && (rawCavity.x1 - rawCavity.x0) >= heroMeas.w * 0.25
+    ? rawCavity
+    : null;
+
+  // No usable cavity → there's no clean place for supports to sit without
+  // overlapping the hero's ascender letters (e.g. "dollars" / "huge").
+  // Fall back to stacked layout: supports on a separate line above hero.
+  if (!cavity) return layoutStacked(chunk, heroIdx, W, H);
+
+  // Measure supports at the cfg scale first.
+  setFont(ctx, cfg.supportScale);
+  let spaceW = ctx.measureText(' ').width;
+  const sMeas = supports.map((tok) => {
+    const text = transformWordText(tok.text);
+    return { text, meas: measureWord(ctx, text), indexInCard: chunk.indexOf(tok) };
+  });
+  let totalSupportW =
+    sMeas.reduce((s, m) => s + m.meas.w, 0) + Math.max(0, supports.length - 1) * spaceW;
+
+  // Supports need to fit inside the cavity width (with a small breathing-room margin).
+  const targetW = (cavity.x1 - cavity.x0) * 0.85;
+
+  // Auto-shrink so supports always fit. No fallback, no minimum: they get small
+  // if needed (matches Callum's "fit inside the letters" direction).
+  let useSupportScale = cfg.supportScale;
+  if (totalSupportW > targetW) {
+    useSupportScale = Math.max(20, cfg.supportScale * (targetW / totalSupportW));
+    setFont(ctx, useSupportScale);
+    spaceW = ctx.measureText(' ').width;
+    for (const m of sMeas) m.meas = measureWord(ctx, m.text);
+    totalSupportW = sMeas.reduce((s, m) => s + m.meas.w, 0) + Math.max(0, supports.length - 1) * spaceW;
+  }
+
+  // Centre supports on the cavity midpoint (above 'as' in "fast"), or hero centre if no cavity.
+  const heroLeftX = heroCx - heroMeas.w / 2;
+  let supportCenterX = cavity ? heroLeftX + cavity.midX : heroCx;
+
+  // Vertical position. Natural baseline = hero's x-height line (top of short letters).
+  // But if the natural baseline would push support text + stroke ABOVE the hero's
+  // cap top (i.e. supports overshoot the f/t ascenders), shift the baseline DOWN
+  // so the top of the support stroke sits exactly at the hero cap top — no overlap.
+  const heroXHeightFromBaseline = heroScale * INTER_X_HEIGHT_RATIO;
+  const naturalBaselineY = heroBaselineY - heroXHeightFromBaseline;
+  // Support stroke scales with font size so a shrunken support doesn't get a giant stroke.
+  const supportStrokePx = cfg.strokeW * (useSupportScale / cfg.supportScale);
+  const supportAscent = sMeas[0]?.meas.ascent ?? (useSupportScale * INTER_CAP_RATIO);
+  const heroAscent = heroMeas.ascent;
+  const minBaselineY = (heroBaselineY - heroAscent) + supportAscent + supportStrokePx / 2;
+  const supportBaselineY = Math.max(naturalBaselineY, minBaselineY);
+  const supportStartX = supportCenterX - totalSupportW / 2;
+
+  let cursorX = supportStartX;
+  const supportLayouts = sMeas.map((m) => {
+    const x = cursorX + m.meas.w / 2;
+    cursorX += m.meas.w + spaceW;
+    return {
+      text: m.text, role: 'support',
+      x, y: supportBaselineY, align: 'center', baseline: 'alphabetic',
+      fontPx: useSupportScale, fontFamily: cfg.fontFamily,
+      color: cfg.supportColor,
+      indexInCard: m.indexInCard, lineIdx: 0,
+    };
+  });
+
+  // Pill bounding box (single combined pill enclosing everything visible)
+  const supportTop = supportBaselineY - (sMeas[0]?.meas.ascent ?? 0);
+  const heroBottom = heroBaselineY + heroMeas.descent;
+  const allLeft = Math.min(supportStartX, heroCx - heroMeas.w / 2);
+  const allRight = Math.max(supportStartX + totalSupportW, heroCx + heroMeas.w / 2);
+  const lineBoxes = [{
+    x0: allLeft, x1: allRight,
+    y0: supportTop, y1: heroBottom,
+    cy: (supportTop + heroBottom) / 2,
+    h: heroBottom - supportTop,
+  }];
+
+  // Stagger delays in reading order
+  const wordLayouts = [heroLayout, ...supportLayouts];
+  wordLayouts.sort((a, b) => a.indexInCard - b.indexInCard);
+  wordLayouts.forEach((wl, i) => { wl.delay = i * (cfg.wordStagger / 1000); });
+
+  return { words: wordLayouts, lineBoxes };
+}
+
+// =========================================================================
+// STACKED LAYOUT — small / LARGE / small sandwich pattern.
+//
+// Rules:
+//   - Hero (if any) gets its own line, sized at heroBump × supportScale.
+//   - Supports split into "before hero" and "after hero" by source order.
+//   - 3-line (hero mid-sentence):  before-supports / HERO / after-supports
+//   - 2-line (hero at end):        before-supports / HERO
+//   - 2-line (hero at start):      HERO / after-supports
+//   - 1-line (no supports):        HERO solo
+//   - No hero, all words:          one line of flowing supports (auto-shrunk)
+//   - Each support line auto-shrinks to fit canvas width (no wrap to 2 lines).
+// =========================================================================
+
+const MIN_SHRINK_SCALE = 24;
+
+// Per-line horizontal offset for the diagonal staircase look (matches reference video).
+// Top non-hero line shifts LEFT; bottom non-hero line shifts RIGHT; hero stays centred.
+// Magnitude is a fraction of the available canvas margin so wide lines shift less.
+function getLineXOffset(lineIdx, totalLines, isHero, lineW, W) {
+  if (isHero) return 0;
+  const edgeMargin = W * 0.05;
+  const maxShift = (W - lineW) / 2 - edgeMargin;
+  if (maxShift <= 0) return 0;
+  if (lineIdx === 0) return -maxShift;          // top line → fully left
+  if (lineIdx === totalLines - 1) return +maxShift;  // bottom line → fully right
+  return 0;
+}
+
+// Measure a list of tokens as a single line at `defaultScale`, shrinking the
+// scale uniformly if the line would exceed `maxLineW`. Returns measurements.
+function measureLine(tokens, defaultScale, maxLineW) {
+  setFont(ctx, defaultScale);
+  const fullText = tokens.map(t => transformWordText(t.text)).join(' ');
+  const fullW = ctx.measureText(fullText).width;
+  let scale = defaultScale;
+  if (fullW > maxLineW) {
+    scale = Math.max(MIN_SHRINK_SCALE, defaultScale * (maxLineW / fullW));
+  }
+  setFont(ctx, scale);
+  const spW = ctx.measureText(' ').width;
+  const measures = tokens.map((tok) => ({
+    text: transformWordText(tok.text),
+    meas: measureWord(ctx, transformWordText(tok.text)),
+    tok,
+  }));
+  const totalW =
+    measures.reduce((s, m) => s + m.meas.w, 0) + Math.max(0, tokens.length - 1) * spW;
+  return { scale, spW, measures, totalW };
+}
+
+function layoutStacked(chunk, heroIdx, W, H) {
+  const useHero = heroIdx >= 0;
+  const maxLineW = W * 0.92;
+
+  // No-hero card → one line of flowing text, auto-shrunk to fit.
+  if (!useHero) {
+    const line = measureLine(chunk, cfg.supportScale, maxLineW);
+    const baselineY = H * cfg.heroY + line.measures[0].meas.ascent * 0.3;
+    const lineLeftX = (W - line.totalW) / 2;
+    let cursorX = lineLeftX;
+    const wordLayouts = line.measures.map((m) => {
+      const x = cursorX + m.meas.w / 2;
+      cursorX += m.meas.w + line.spW;
+      return {
+        text: m.text, role: 'support',
+        x, y: baselineY, align: 'center', baseline: 'alphabetic',
+        fontPx: line.scale, fontFamily: cfg.fontFamily,
+        color: cfg.supportColor,
+        indexInCard: chunk.indexOf(m.tok), lineIdx: 0,
+      };
+    });
+    wordLayouts.forEach((wl, i) => { wl.delay = i * (cfg.wordStagger / 1000); });
+    const lineBox = {
+      x0: lineLeftX, x1: lineLeftX + line.totalW,
+      y0: baselineY - line.measures[0].meas.ascent,
+      y1: baselineY + line.measures[0].meas.descent,
+      cy: baselineY,
+      h: line.measures[0].meas.h,
+    };
+    return { words: wordLayouts, lineBoxes: [lineBox] };
+  }
+
+  // Hero present: split into before/after, build line list (top→bottom).
+  const beforeTokens = chunk.filter((_, i) => i < heroIdx);
+  const afterTokens = chunk.filter((_, i) => i > heroIdx);
+
+  // Measure hero
+  let heroScale = cfg.supportScale * cfg.heroBump;
+  setFont(ctx, heroScale);
+  const heroText = transformWordText(chunk[heroIdx].text);
+  let heroMeas = measureWord(ctx, heroText);
+  if (heroMeas.w > maxLineW) {
+    heroScale = heroScale * (maxLineW / heroMeas.w);
+    setFont(ctx, heroScale);
+    heroMeas = measureWord(ctx, heroText);
+  }
+
+  // Build the line list. Hero line is always emitted, supports above/below.
+  const heroLineDescriptor = {
+    isHero: true, scale: heroScale,
+    measures: [{ text: heroText, meas: heroMeas, tok: chunk[heroIdx] }],
+    totalW: heroMeas.w, spW: 0,
+  };
+  const lineDescriptors = [];
+  if (beforeTokens.length) lineDescriptors.push({ ...measureLine(beforeTokens, cfg.supportScale, maxLineW), isHero: false });
+  lineDescriptors.push(heroLineDescriptor);
+  if (afterTokens.length) lineDescriptors.push({ ...measureLine(afterTokens, cfg.supportScale, maxLineW), isHero: false });
+
+  // Vertical layout: stack lines, centred around cfg.heroY * H.
+  // Zero gap = supports sit immediately against the hero's cap top / baseline,
+  // giving the "tucked in" feel rather than floating above/below.
+  const lineGap = -8;
+  const heights = lineDescriptors.map(l => l.measures[0].meas.h);
+  const totalH = heights.reduce((s, h) => s + h, 0) + (lineDescriptors.length - 1) * lineGap;
+  let cursorY = (H * cfg.heroY) - totalH / 2;
+
+  const wordLayouts = [];
+  const lineBoxes = [];
+
+  for (let li = 0; li < lineDescriptors.length; li++) {
+    const line = lineDescriptors[li];
+    const baselineY = cursorY + line.measures[0].meas.ascent;
+    // Horizontal offset per line: top supports shift LEFT, bottom supports shift RIGHT,
+    // hero stays centred. Creates the staircase / diagonal nest seen in the reference
+    // video ("to a / STANDARD / variable").
+    const xOffset = getLineXOffset(li, lineDescriptors.length, line.isHero, line.totalW, W);
+    const lineLeftX = (W - line.totalW) / 2 + xOffset;
+    let cursorX = lineLeftX;
+
+    for (const m of line.measures) {
+      const x = cursorX + m.meas.w / 2;
+      cursorX += m.meas.w + line.spW;
+      wordLayouts.push({
+        text: m.text, role: line.isHero ? 'hero' : 'support',
+        x, y: baselineY, align: 'center', baseline: 'alphabetic',
+        fontPx: line.scale, fontFamily: cfg.fontFamily,
+        color: line.isHero ? cfg.heroColor : cfg.supportColor,
+        indexInCard: chunk.indexOf(m.tok), lineIdx: li,
+      });
+    }
+
+    lineBoxes.push({
+      x0: lineLeftX, x1: lineLeftX + line.totalW,
+      y0: cursorY, y1: cursorY + line.measures[0].meas.h,
+      cy: cursorY + line.measures[0].meas.h / 2,
+      h: line.measures[0].meas.h,
+    });
+
+    cursorY += line.measures[0].meas.h + lineGap;
+  }
+
+  // Reading-order stagger (delays).
+  wordLayouts.sort((a, b) => a.indexInCard - b.indexInCard);
+  wordLayouts.forEach((wl, i) => { wl.delay = i * (cfg.wordStagger / 1000); });
+
+  return { words: wordLayouts, lineBoxes };
+}
+
+function layoutCards(tokens, cardChunks, heroIndices) {
+  const W = stage.width;
+  const H = stage.height;
+  const out = [];
+  let tCursor = 0;
+
+  for (let ci = 0; ci < cardChunks.length; ci++) {
+    const chunk = cardChunks[ci];
+    const heroIdx = heroIndices[ci];
+
+    let words, lineBoxes;
+
+    if (cfg.slotPattern === 'nested') {
+      const res = layoutNested(chunk, heroIdx, W, H);
+      words = res.words; lineBoxes = res.lineBoxes;
+    } else if (cfg.slotPattern === 'stacked') {
+      const res = layoutStacked(chunk, heroIdx, W, H);
+      words = res.words; lineBoxes = res.lineBoxes;
+    } else {
+      // Legacy slot-based layout (diagonal / compact / spread) — requires a hero.
+      const fallbackHeroIdx = heroIdx >= 0 ? heroIdx : 0;
+      const res = layoutSlotted(chunk, fallbackHeroIdx, W, H);
+      words = res.words; lineBoxes = res.lineBoxes;
+    }
+
+    out.push({
+      startSec: tCursor,
+      endSec: tCursor + cfg.cardDur,
+      words,
+      lineBoxes,
+    });
+    tCursor += cfg.cardDur;
+  }
+
+  return { cards: out, totalDur: tCursor };
+}
+
+function layoutSlotted(chunk, heroIdx, W, H) {
+  const heroToken = chunk[heroIdx];
+
+  setFont(ctx, cfg.heroScale);
+  const heroText = transformWordText(heroToken.text);
+  const heroMeasInit = measureWord(ctx, heroText);
+
+  let actualHeroScale = cfg.heroScale;
+  const maxHeroWidth = W - 100;
+  if (heroMeasInit.w > maxHeroWidth) {
+    actualHeroScale = cfg.heroScale * (maxHeroWidth / heroMeasInit.w);
+    setFont(ctx, actualHeroScale);
+  }
+  const heroFinal = measureWord(ctx, heroText);
+
+  const heroCx = W / 2;
+  const heroCy = H * cfg.heroY;
+  const hero = {
+    cx: heroCx, cy: heroCy,
+    w: heroFinal.w, h: heroFinal.h,
+    ascent: heroFinal.ascent, descent: heroFinal.descent,
+  };
+
+  const heroLayout = {
+    text: heroText, role: 'hero',
+    x: heroCx, y: heroCy, align: 'center', baseline: 'alphabetic',
+    fontPx: actualHeroScale, fontFamily: cfg.fontFamily, color: cfg.heroColor,
+    delay: 0, indexInCard: heroIdx,
+  };
+
+  const supports = chunk.filter((_, i) => i !== heroIdx);
+  const slots = buildSlots(cfg.slotPattern, supports.length, hero, W, H, cfg.supportMargin);
+
+  const supportLayouts = supports.map((tok, i) => {
+    const slot = slots[i] || { x: heroCx, y: heroCy + hero.descent + cfg.supportMargin, align: 'center', baseline: 'hanging' };
+    const idxInCard = chunk.indexOf(tok);
+    return {
+      text: transformWordText(tok.text), role: 'support',
+      x: slot.x, y: slot.y, align: slot.align, baseline: slot.baseline,
+      fontPx: cfg.supportScale, fontFamily: cfg.fontFamily, color: cfg.supportColor,
+      delay: 0, indexInCard: idxInCard,
+    };
+  });
+
+  const allWords = [heroLayout, ...supportLayouts].sort((a, b) => a.indexInCard - b.indexInCard);
+  allWords.forEach((wl, i) => { wl.delay = i * (cfg.wordStagger / 1000); });
+
+  return { words: allWords, lineBoxes: [] };  // no pills in slot patterns
+}
+
+function easeBackOut(p) {
+  const c1 = 1.70158, c3 = c1 + 1;
+  return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2);
+}
+function easeOutCubic(p) { return 1 - Math.pow(1 - p, 3); }
+
+function revealState(mode, tInWord, durMs) {
+  if (tInWord < 0) return { scale: 0, opacity: 0 };
+  if (mode === 'snap') {
+    if (tInWord < 20) return { scale: 0, opacity: 0 };
+    return { scale: 1, opacity: 1 };
+  }
+  if (mode === 'pop') {
+    const p = Math.min(1, tInWord / durMs);
+    return { scale: easeBackOut(p), opacity: Math.min(1, p * 2) };
+  }
+  const p = Math.min(1, tInWord / durMs);
+  const e = easeOutCubic(p);
+  return { scale: 0.95 + 0.05 * e, opacity: e };
+}
+
+const REVEAL_DUR_MS = { snap: 0, pop: 220, fade: 180 };
+
+function drawBackground(ctx, W, H, bg, forExport) {
+  if (bg === 'white') { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H); return; }
+  if (bg === 'checker' && !forExport) {
+    const sq = 60;
+    for (let y = 0; y < H; y += sq) {
+      for (let x = 0; x < W; x += sq) {
+        ctx.fillStyle = ((x / sq + y / sq) & 1) ? '#1a1a1a' : '#252525';
+        ctx.fillRect(x, y, sq, sq);
+      }
+    }
+    return;
+  }
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, W, H);
+}
+
+function drawWord(ctx, wl, opacity, scale) {
+  if (opacity <= 0 || scale <= 0) return;
+  ctx.save();
+  ctx.translate(wl.x, wl.y);
+  ctx.scale(scale, scale);
+  ctx.globalAlpha = opacity;
+  ctx.textAlign = wl.align;
+  ctx.textBaseline = wl.baseline;
+  const family = wl.fontFamily || cfg.fontFamily;
+  ctx.font = `${fontWeightFor(family)} ${wl.fontPx}px ${fontStack(family)}`;
+  if (cfg.strokeW > 0) {
+    // Hero: 1.6× base stroke. Support: scale stroke with its font size so a shrunken
+    // support doesn't get a comparatively giant outline that breaks the visual fit.
+    let strokeMul = 1;
+    if (wl.role === 'hero') strokeMul = 1.6;
+    else if (wl.fontPx < cfg.supportScale) strokeMul = wl.fontPx / cfg.supportScale;
+    ctx.lineWidth = cfg.strokeW * strokeMul;
+    ctx.strokeStyle = '#000000';
+    ctx.lineJoin = 'round';
+    ctx.miterLimit = 2;
+    ctx.strokeText(wl.text, 0, 0);
+  }
+  ctx.fillStyle = wl.color;
+  ctx.fillText(wl.text, 0, 0);
+  ctx.restore();
+}
+
+function drawPill(ctx, box, opacity) {
+  if (opacity <= 0) return;
+  const padX = cfg.pillPadX;
+  const padY = cfg.pillPadY;
+  const x = box.x0 - padX;
+  const y = box.y0 - padY * 0.4;
+  const w = (box.x1 - box.x0) + padX * 2;
+  const h = (box.y1 - box.y0) + padY * 0.8;
+  const r = Math.min(cfg.pillRadius, h / 2);
+  ctx.save();
+  ctx.globalAlpha = opacity * cfg.pillOpacity;
+  ctx.fillStyle = '#000000';
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawFrame(tSec, forExport = false) {
+  const W = stage.width;
+  const H = stage.height;
+  ctx.clearRect(0, 0, W, H);
+  drawBackground(ctx, W, H, cfg.bg, forExport);
+
+  if (!state.cards.length) return;
+
+  let activeCard = null, activeIdx = -1;
+  for (let i = 0; i < state.cards.length; i++) {
+    const c = state.cards[i];
+    if (tSec >= c.startSec && tSec < c.endSec) { activeCard = c; activeIdx = i; break; }
+  }
+  if (!activeCard && tSec >= state.totalDur && state.cards.length) {
+    activeCard = state.cards[state.cards.length - 1];
+    activeIdx = state.cards.length - 1;
+  }
+  if (!activeCard) return;
+
+  const fadeMs = cfg.cardFade;
+  let cardAlpha = 1;
+  let prevCard = null;
+  if (fadeMs > 0 && activeIdx > 0) {
+    const sinceStart = (tSec - activeCard.startSec) * 1000;
+    if (sinceStart < fadeMs) {
+      cardAlpha = sinceStart / fadeMs;
+      prevCard = state.cards[activeIdx - 1];
+    }
+  }
+
+  if (prevCard) {
+    const prevAlpha = 1 - cardAlpha;
+    if (cfg.pillEnabled && prevCard.lineBoxes?.length) {
+      for (const box of prevCard.lineBoxes) drawPill(ctx, box, prevAlpha);
+    }
+    for (const wl of prevCard.words) drawWord(ctx, wl, prevAlpha, 1);
+  }
+
+  const cardLocalMs = (tSec - activeCard.startSec) * 1000;
+  const revealDur = REVEAL_DUR_MS[cfg.reveal];
+
+  // Per-line pill alpha = max reveal-opacity of words on that line.
+  if (cfg.pillEnabled && activeCard.lineBoxes?.length) {
+    const lineAlphas = new Array(activeCard.lineBoxes.length).fill(0);
+    for (const wl of activeCard.words) {
+      const tInWord = cardLocalMs - wl.delay * 1000;
+      const { opacity } = revealState(cfg.reveal, tInWord, revealDur);
+      if (wl.lineIdx != null && opacity > lineAlphas[wl.lineIdx]) {
+        lineAlphas[wl.lineIdx] = opacity;
+      }
+    }
+    for (let i = 0; i < activeCard.lineBoxes.length; i++) {
+      drawPill(ctx, activeCard.lineBoxes[i], lineAlphas[i] * cardAlpha);
+    }
+  }
+
+  // Draw hero first (lays the bottom of the visual stack), then supports on top.
+  const drawInOrder = [
+    ...activeCard.words.filter(w => w.role === 'hero'),
+    ...activeCard.words.filter(w => w.role === 'support'),
+  ];
+  for (const wl of drawInOrder) {
+    const tInWord = cardLocalMs - wl.delay * 1000;
+    const { scale, opacity } = revealState(cfg.reveal, tInWord, revealDur);
+    drawWord(ctx, wl, opacity * cardAlpha, scale);
+  }
+}
+
+async function rebuild() {
+  applyAspect();
+
+  const tokens = parseScript(cfg.script);
+  if (!tokens.length) {
+    state.cards = []; state.totalDur = 0;
+    drawFrame(0); return;
+  }
+  const chunks = chunkIntoCards(tokens, cfg.maxWords);
+
+  let heroChoices = chunks.map(() => -1);
+
+  if (cfg.heroMode === 'claude') {
+    const key = localStorage.getItem('captions-tool-anthropic-key') || '';
+    if (key) {
+      const hash = await sha1(cfg.script + '|' + cfg.maxWords);
+      const cached = localStorage.getItem('captions-tool-claude-cache-' + hash);
+      if (cached) {
+        try { heroChoices = JSON.parse(cached); } catch {}
+      } else {
+        try {
+          heroChoices = await claudePickHeroes(chunks, key);
+          localStorage.setItem('captions-tool-claude-cache-' + hash, JSON.stringify(heroChoices));
+        } catch (e) {
+          console.warn('Claude hero-pick failed, falling back to auto:', e);
+          heroChoices = chunks.map(() => -1);
+        }
+      }
+    }
+  }
+
+  const heroIndices = chunks.map((chunk, ci) => pickHeroIndex(chunk, cfg.heroMode, heroChoices[ci]));
+  const { cards, totalDur } = layoutCards(tokens, chunks, heroIndices);
+  state.cards = cards;
+  state.totalDur = totalDur;
+
+  $('scrubber').max = Math.max(1, Math.round(totalDur * 1000));
+  updateTimeReadout();
+  drawFrame(state.t);
+}
+
+function updateTimeReadout() {
+  $('time-readout').textContent = `${state.t.toFixed(1)}s / ${state.totalDur.toFixed(1)}s`;
+  $('scrubber').value = Math.round(state.t * 1000);
+}
+
+async function sha1(text) {
+  const buf = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function claudePickHeroes(chunks, key) {
+  const cardsText = chunks.map((c, i) => `${i + 1}. ${c.map(t => t.text).join(' ')}`).join('\n');
+  const prompt = `For each numbered card below, pick the index (0-based) of the most emphatic / emotionally weighted word — the one that should be HUGE on screen. Return ONLY a JSON array of integers, one per card, in order.
+
+Cards:
+${cardsText}
+
+Example output: [2, 0, 1]`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 256,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`Anthropic ${res.status}: ${t.slice(0, 200)}`);
+  }
+  const data = await res.json();
+  const text = (data.content?.[0]?.text || '').trim();
+  const m = text.match(/\[[\s\S]*?\]/);
+  if (!m) throw new Error('No JSON array in response');
+  const arr = JSON.parse(m[0]);
+  if (!Array.isArray(arr) || arr.length !== chunks.length) {
+    throw new Error(`Bad shape: got ${arr.length}, wanted ${chunks.length}`);
+  }
+  return arr;
+}
+
+function tick(now) {
+  if (!state.playing) return;
+  const dt = (now - state.lastNow) / 1000;
+  state.lastNow = now;
+  state.t += dt;
+  if (state.t > state.totalDur) state.t = 0;
+  drawFrame(state.t);
+  updateTimeReadout();
+  state.rafId = requestAnimationFrame(tick);
+}
+
+function play() {
+  if (state.playing || state.exporting) return;
+  state.playing = true;
+  state.lastNow = performance.now();
+  state.rafId = requestAnimationFrame(tick);
+  $('play-btn').textContent = 'Pause';
+}
+
+function pause() {
+  state.playing = false;
+  if (state.rafId) cancelAnimationFrame(state.rafId);
+  $('play-btn').textContent = 'Play';
+}
+
+function restart() {
+  state.t = 0;
+  drawFrame(0);
+  updateTimeReadout();
+  if (!state.playing) play();
+}
+
+function pickAvcCodec(W, H, fps, bitrate) {
+  const candidates = ['avc1.640028', 'avc1.4d0028', 'avc1.42E028', 'avc1.42E01F'];
+  return Promise.all(candidates.map(async codec => {
+    try {
+      const r = await VideoEncoder.isConfigSupported({ codec, width: W, height: H, bitrate, framerate: fps });
+      return r.supported ? codec : null;
+    } catch { return null; }
+  })).then(results => results.find(c => c) || null);
+}
+
+async function exportMp4() {
+  if (state.exporting) return;
+  if (!state.totalDur) { alert('Nothing to export.'); return; }
+
+  pause();
+  state.exporting = true;
+  $('download-btn').disabled = true;
+  const prog = $('render-progress');
+  const progText = $('render-progress-text');
+  const progBar = $('render-progress-bar');
+  prog.hidden = false;
+  progText.textContent = 'Preparing…';
+  progBar.style.width = '0%';
+
+  const W = stage.width;
+  const H = stage.height;
+  const fps = cfg.fps;
+  const bitrate = 12_000_000;
+  const totalFrames = Math.max(1, Math.round(state.totalDur * fps));
+  const filename = filenameFor();
+
+  const hasWebCodecs = typeof VideoEncoder !== 'undefined';
+  const codec = hasWebCodecs ? await pickAvcCodec(W, H, fps, bitrate) : null;
+
+  try {
+    if (codec) {
+      await renderWithWebCodecs(W, H, fps, bitrate, codec, totalFrames, filename, progText, progBar);
+    } else {
+      await renderWithMediaRecorder(W, H, fps, totalFrames, filename, progText, progBar);
+    }
+    progText.textContent = 'Done.';
+  } catch (e) {
+    console.error('Export failed:', e);
+    progText.textContent = 'Export failed: ' + (e.message || e);
+  } finally {
+    state.exporting = false;
+    $('download-btn').disabled = false;
+    setTimeout(() => { prog.hidden = true; }, 2500);
+  }
+}
+
+async function renderWithWebCodecs(W, H, fps, bitrate, codec, totalFrames, filename, progText, progBar) {
+  const { Muxer, ArrayBufferTarget } = await import('https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.1/+esm');
+  const muxer = new Muxer({
+    target: new ArrayBufferTarget(),
+    video: { codec: 'avc', width: W, height: H, frameRate: fps },
+    fastStart: 'in-memory',
+  });
+  const encoder = new VideoEncoder({
+    output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+    error: (e) => console.error('encoder error', e),
+  });
+  encoder.configure({ codec, width: W, height: H, bitrate, framerate: fps });
+
+  progText.textContent = `Rendering 0 / ${totalFrames}`;
+
+  for (let i = 0; i <= totalFrames; i++) {
+    const tSec = i / fps;
+    drawFrame(tSec, true);
+    const frame = new VideoFrame(stage, {
+      timestamp: Math.round(i * 1e6 / fps),
+      duration: Math.round(1e6 / fps),
+    });
+    encoder.encode(frame, { keyFrame: (i % 30) === 0 });
+    frame.close();
+    if (i % 10 === 0) {
+      const pct = (i / totalFrames) * 100;
+      progBar.style.width = pct.toFixed(1) + '%';
+      progText.textContent = `Rendering ${i} / ${totalFrames}`;
+      await new Promise(r => setTimeout(r, 0));
+    }
+  }
+
+  await encoder.flush();
+  muxer.finalize();
+  progText.textContent = 'Saving file…';
+
+  const blob = new Blob([muxer.target.buffer], { type: 'video/mp4' });
+  downloadBlob(blob, filename);
+}
+
+async function renderWithMediaRecorder(W, H, fps, totalFrames, filename, progText, progBar) {
+  const stream = stage.captureStream(fps);
+  const rec = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9', bitsPerSecond: 12_000_000 });
+  const chunks = [];
+  rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+  const done = new Promise(resolve => { rec.onstop = resolve; });
+  rec.start();
+
+  for (let i = 0; i <= totalFrames; i++) {
+    const tSec = i / fps;
+    drawFrame(tSec, true);
+    if (i % 10 === 0) {
+      const pct = (i / totalFrames) * 100;
+      progBar.style.width = pct.toFixed(1) + '%';
+      progText.textContent = `Rendering ${i} / ${totalFrames} (fallback)`;
+    }
+    await new Promise(r => setTimeout(r, 1000 / fps));
+  }
+
+  rec.stop();
+  await done;
+  const blob = new Blob(chunks, { type: 'video/webm' });
+  downloadBlob(blob, filename.replace(/\.mp4$/, '.webm'));
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function filenameFor() {
+  const words = cfg.script
+    .replace(/[*]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .split(/\s+/).filter(Boolean)
+    .slice(0, 3).join('-');
+  return `captions-${words || 'untitled'}.mp4`;
+}
+
+function bindRange(id, key, fmt, parser = Number) {
+  const el = $(id);
+  const val = $(id + '-val');
+  const apply = () => {
+    cfg[key] = parser(el.value);
+    if (val) val.textContent = fmt ? fmt(cfg[key]) : cfg[key];
+  };
+  el.addEventListener('input', () => { apply(); scheduleRebuild(); });
+  apply();
+}
+
+let rebuildTimer = null;
+function scheduleRebuild() {
+  clearTimeout(rebuildTimer);
+  rebuildTimer = setTimeout(() => { rebuild(); }, 50);
+}
+
+function bindControls() {
+  $('script-input').addEventListener('input', (e) => { cfg.script = e.target.value; scheduleRebuild(); });
+
+  document.querySelectorAll('input[name="hero-mode"]').forEach(r => {
+    r.addEventListener('change', (e) => {
+      cfg.heroMode = e.target.value;
+      $('claude-section').dataset.show = (cfg.heroMode === 'claude') ? 'true' : 'false';
+      scheduleRebuild();
+    });
+  });
+
+  $('anthropic-key').addEventListener('input', (e) => {
+    const v = e.target.value.trim();
+    if (v) {
+      localStorage.setItem('captions-tool-anthropic-key', v);
+      $('key-status').textContent = `saved (${v.slice(0, 10)}…)`;
+      $('key-status').className = 'key-status ok';
+    } else {
+      localStorage.removeItem('captions-tool-anthropic-key');
+      $('key-status').textContent = 'no key saved';
+      $('key-status').className = 'key-status missing';
+    }
+    scheduleRebuild();
+  });
+
+  bindRange('card-dur', 'cardDur', v => v.toFixed(2) + 's');
+  bindRange('word-stagger', 'wordStagger', v => v + 'ms');
+  bindRange('card-fade', 'cardFade', v => v === 0 ? 'cut' : v + 'ms');
+
+  document.querySelectorAll('input[name="reveal-mode"]').forEach(r => {
+    r.addEventListener('change', (e) => { cfg.reveal = e.target.value; });
+  });
+
+  $('slot-pattern').addEventListener('change', (e) => { cfg.slotPattern = e.target.value; scheduleRebuild(); });
+  bindRange('hero-y', 'heroY', v => v.toFixed(2));
+  bindRange('max-words', 'maxWords', v => v, v => parseInt(v, 10));
+  bindRange('support-margin', 'supportMargin', v => v + 'px', v => parseInt(v, 10));
+
+  $('font-family').addEventListener('change', e => { cfg.fontFamily = e.target.value; scheduleRebuild(); });
+  bindRange('font-weight', 'fontWeight', v => String(v), v => parseInt(v, 10));
+  bindRange('hero-scale', 'heroScale', v => v, v => parseInt(v, 10));
+  bindRange('support-scale', 'supportScale', v => v, v => parseInt(v, 10));
+  bindRange('hero-bump', 'heroBump', v => v.toFixed(2) + '×');
+  bindRange('stroke-w', 'strokeW', v => v, v => parseInt(v, 10));
+  $('hero-color').addEventListener('input', e => { cfg.heroColor = e.target.value; scheduleRebuild(); });
+  $('support-color').addEventListener('input', e => { cfg.supportColor = e.target.value; scheduleRebuild(); });
+  $('all-caps').addEventListener('change', e => { cfg.allCaps = e.target.checked; scheduleRebuild(); });
+
+  $('pill-enabled').addEventListener('change', e => { cfg.pillEnabled = e.target.checked; drawFrame(state.t); });
+  bindRange('pill-opacity', 'pillOpacity', v => v.toFixed(2));
+  bindRange('pill-pad-x', 'pillPadX', v => v + 'px', v => parseInt(v, 10));
+  bindRange('pill-pad-y', 'pillPadY', v => v + 'px', v => parseInt(v, 10));
+  bindRange('pill-radius', 'pillRadius', v => v + 'px', v => parseInt(v, 10));
+
+  $('aspect').addEventListener('change', e => { cfg.aspect = e.target.value; scheduleRebuild(); });
+  $('fps').addEventListener('change', e => { cfg.fps = parseInt(e.target.value, 10); applyAspect(); });
+  $('bg').addEventListener('change', e => { cfg.bg = e.target.value; drawFrame(state.t); });
+
+  $('play-btn').addEventListener('click', () => { state.playing ? pause() : play(); });
+  $('restart-btn').addEventListener('click', restart);
+  $('scrubber').addEventListener('input', e => {
+    state.t = Number(e.target.value) / 1000;
+    drawFrame(state.t);
+    $('time-readout').textContent = `${state.t.toFixed(1)}s / ${state.totalDur.toFixed(1)}s`;
+  });
+  $('download-btn').addEventListener('click', exportMp4);
+
+  document.querySelectorAll('.preset-row button[data-preset]').forEach(b => {
+    b.addEventListener('click', () => {
+      const text = PRESETS[b.dataset.preset];
+      if (text) {
+        $('script-input').value = text;
+        cfg.script = text;
+        scheduleRebuild();
+      }
+    });
+  });
+
+  const saved = localStorage.getItem('captions-tool-anthropic-key');
+  if (saved) {
+    $('anthropic-key').value = saved;
+    $('key-status').textContent = `saved (${saved.slice(0, 10)}…)`;
+    $('key-status').className = 'key-status ok';
+  }
+}
+
+function applyDebugSolo() {
+  // ?solo=1 strips chrome so a headless screenshot captures just the preview canvas.
+  const sel = (s) => document.querySelector(s);
+  document.body.style.padding = '0';
+  document.body.style.background = '#000';
+  sel('.topnav').style.display = 'none';
+  sel('.page-header').style.display = 'none';
+  sel('.controls-col').style.display = 'none';
+  const demo = sel('.demo');
+  demo.style.background = 'transparent';
+  demo.style.border = 'none';
+  demo.style.padding = '0';
+  sel('.demo h3').style.display = 'none';
+  sel('.demo p.caption').style.display = 'none';
+  sel('.transport').style.display = 'none';
+  sel('.download-btn').style.display = 'none';
+  sel('.render-progress').style.display = 'none';
+  sel('.preview-meta').style.display = 'none';
+  sel('.stage-wrap').style.maxWidth = 'none';
+  sel('.stage-wrap').style.border = 'none';
+  sel('.stage-wrap').style.borderRadius = '0';
+}
+
+async function init() {
+  bindControls();
+  try {
+    const loads = [];
+    for (const w of [500, 600, 700, 800, 900]) {
+      loads.push(document.fonts.load(`${w} ${cfg.supportScale}px Inter`));
+      loads.push(document.fonts.load(`${w} ${Math.round(cfg.supportScale * cfg.heroBump)}px Inter`));
+    }
+    loads.push(document.fonts.load(`${cfg.heroScale}px Anton`));
+    await Promise.all(loads);
+    await document.fonts.ready;
+    state.fontReady = true;
+  } catch (e) {
+    console.warn('Font load issue (will fall back):', e);
+  }
+
+  const urlParams = new URLSearchParams(location.search);
+  if (urlParams.get('solo') === '1') applyDebugSolo();
+  const seekT = parseFloat(urlParams.get('t'));
+
+  await rebuild();
+  if (!isNaN(seekT)) {
+    state.t = seekT;
+    drawFrame(seekT);
+    return;  // do not autoplay when explicit seek
+  }
+  play();
+}
+
+init();
+</script>
+</body>
+</html>
